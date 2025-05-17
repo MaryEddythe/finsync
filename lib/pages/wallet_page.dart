@@ -56,20 +56,89 @@ class _WalletPageState extends State<WalletPage> {
     });
   }
 
-  Widget _buildBalanceCard(String title, double amount, Color color) {
+  Widget _buildBalanceCard(String title, double amount, Color color, IconData icon) {
     return Expanded(
-      child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 8),
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+      child: Card(
+        elevation: 4,
+        margin: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Text(
+                '₱${amount.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsCard() {
+    return Card(
+      elevation: 4,
+      margin: EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            SizedBox(height: 8),
-            Text('₱${amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              'Revenue & Profit Analytics',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total Revenue', style: TextStyle(color: Colors.grey)),
+                    SizedBox(height: 4),
+                    Text(
+                      '₱${_totalRevenue.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: _totalRevenue >= 0 ? Colors.green[700] : Colors.red[700],
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total Profit', style: TextStyle(color: Colors.grey)),
+                    SizedBox(height: 4),
+                    Text(
+                      '₱${_totalProfit.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -81,7 +150,12 @@ class _WalletPageState extends State<WalletPage> {
     final transactions = transactionsBox.values.toList().reversed.toList();
 
     if (transactions.isEmpty) {
-      return Center(child: Text('No transactions found', style: TextStyle(color: Colors.grey)));
+      return Center(
+        child: Text(
+          'No transactions found',
+          style: TextStyle(color: Colors.white70, fontSize: 16),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -95,43 +169,85 @@ class _WalletPageState extends State<WalletPage> {
         String subtitle = '';
         Color amountColor = Colors.black;
         double amount = 0.0;
-        String date = tx['date'] != null ? tx['date'].toString().substring(0, 10) : 'No date';
+        bool isIncome = false;
+        String date = tx['date'] != null ? tx['date'].toString().substring(0, 16) : 'No date';
+        IconData icon;
 
         if (type == 'load') {
           title = 'Load Sale';
           double customerPays = tx['customerPays'] ?? 0.0;
           double deducted = tx['deducted'] ?? 0.0;
           double profit = _fixedMarkup + (deducted - (deducted * _mayaCommissionRate));
-          subtitle = 'Paid: ₱${customerPays.toStringAsFixed(2)} | Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)} | Date: $date';
+          subtitle = 'Paid: ₱${customerPays.toStringAsFixed(2)} | Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)}';
           amount = customerPays;
-          amountColor = Colors.green;
+          amountColor = Colors.green[700]!;
+          isIncome = true;
+          icon = Icons.phone_android;
         } else if (type == 'gcash_in') {
           title = 'GCash Cash In';
           amount = tx['amount'] ?? 0.0;
-          subtitle = 'Date: $date';
-          amountColor = Colors.green;
+          subtitle = '';
+          amountColor = Colors.green[700]!;
+          isIncome = true;
+          icon = Icons.account_balance_wallet;
         } else if (type == 'gcash_out') {
           title = 'GCash Cash Out';
           amount = tx['amount'] ?? 0.0;
-          subtitle = 'Date: $date';
-          amountColor = Colors.red;
+          subtitle = '';
+          amountColor = Colors.red[700]!;
+          isIncome = false;
+          icon = Icons.account_balance_wallet;
         } else if (type == 'topup') {
           title = 'Load Wallet Top-up';
           amount = tx['amount'] ?? 0.0;
-          subtitle = 'Date: $date';
-          amountColor = Colors.green;
+          subtitle = '';
+          amountColor = Colors.green[700]!;
+          isIncome = true;
+          icon = Icons.phone_android;
         } else {
           title = type;
           amount = tx['amount'] ?? 0.0;
-          subtitle = 'Date: $date';
+          subtitle = '';
+          amountColor = Colors.black;
+          icon = Icons.help_outline;
         }
 
-        return ListTile(
-          title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: 12)) : null,
-          trailing: Text(
-            '₱${amount.toStringAsFixed(2)}',
-            style: TextStyle(color: amountColor, fontWeight: FontWeight.bold),
+        return Card(
+          elevation: 4,
+          margin: EdgeInsets.symmetric(vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            contentPadding: EdgeInsets.all(12),
+            leading: CircleAvatar(
+              backgroundColor: isIncome ? Colors.green[100] : Colors.red[100],
+              child: Icon(
+                icon,
+                color: amountColor,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              title,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (subtitle.isNotEmpty) ...[
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  SizedBox(height: 4),
+                ],
+                Text('Date: $date', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              ],
+            ),
+            trailing: Text(
+              '₱${amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: amountColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ),
         );
       },
@@ -141,56 +257,76 @@ class _WalletPageState extends State<WalletPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Wallet Details & Analytics'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Wallet Balances', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            Row(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF6B48FF), Color(0xFFD1C4E9)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBalanceCard('GCash Balance', _gcashBalance, Colors.blue),
-                _buildBalanceCard('Load Wallet Balance', _loadWalletBalance, Colors.green),
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Wallet Details & Analytics',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.refresh, color: Colors.white),
+                      onPressed: _loadWalletData,
+                      tooltip: 'Refresh Data',
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                // Wallet Balances
+                Text(
+                  'Wallet Balances',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildBalanceCard(
+                      'GCash Balance',
+                      _gcashBalance,
+                      Colors.blue[700]!,
+                      Icons.account_balance_wallet,
+                    ),
+                    _buildBalanceCard(
+                      'Load Wallet Balance',
+                      _loadWalletBalance,
+                      Colors.green[700]!,
+                      Icons.phone_android,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24),
+                // Analytics
+                _buildAnalyticsCard(),
+                SizedBox(height: 24),
+                // Transaction History
+                Text(
+                  'Transaction History',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                SizedBox(height: 12),
+                _buildTransactionList(),
               ],
             ),
-            SizedBox(height: 24),
-            Text('Revenue & Profit Analytics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.deepPurple[50],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Total Revenue:', style: TextStyle(fontSize: 16)),
-                      Text('₱${_totalRevenue.toStringAsFixed(2)}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Total Profit (Markup + Commission):', style: TextStyle(fontSize: 16)),
-                      Text('₱${_totalProfit.toStringAsFixed(2)}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 24),
-            Text('Transaction History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            _buildTransactionList(),
-          ],
+          ),
         ),
       ),
     );

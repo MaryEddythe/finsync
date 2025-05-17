@@ -4,8 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'pages/home_page.dart';
 import 'pages/calc_page.dart';
 import 'pages/wallet_page.dart' as wallet;
-import 'pages/history_page.dart';
-import 'pages/report_page.dart';
+import 'pages/history_page.dart' as history;
+import 'pages/report_page.dart'; // Make sure this file exists and contains a ReportPage widget
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,7 +63,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
     HomePage(),                // Home
     CalcPage(),                // Calc
     wallet.WalletPage(),       // Wallet
-    HistoryPage(),             // History
+    history.HistoryPage(),     // History
     ReportPage(),              // Report
   ];
 
