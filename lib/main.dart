@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'pages/home_page.dart';
+import 'pages/calc_page.dart';
+import 'pages/wallet_page.dart';
+import 'pages/history_page.dart';
+import 'pages/report_page.dart';
+
+void main() => runApp(FinSyncApp());
+
+class FinSyncApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Finsync',
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+      ),
+      home: BottomNavPage(),
+    );
+  }
+}
+
+class BottomNavPage extends StatefulWidget {
+  @override
+  _BottomNavPageState createState() => _BottomNavPageState();
+}
+
+class _BottomNavPageState extends State<BottomNavPage> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [
+    HomePage(),
+    CalcPage(),
+    WalletPage(),
+    HistoryPage(),
+    ReportPage(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Finsync'),
+      ),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.deepPurple,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.calculate), label: 'Calc'),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Wallet'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Report'),
+        ],
+      ),
+    );
+  }
+}
