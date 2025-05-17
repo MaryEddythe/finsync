@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:google_fonts/google_fonts.dart'; // Import Google Fonts
 
 void main() async {
   await Hive.initFlutter();
@@ -8,8 +9,9 @@ void main() async {
   runApp(MaterialApp(
     title: 'GCash & Load Tracker',
     theme: ThemeData(
-      primarySwatch: Colors.teal,
+      primarySwatch: Colors.green,
       visualDensity: VisualDensity.adaptivePlatformDensity,
+      textTheme: GoogleFonts.poppinsTextTheme(),
     ),
     home: HomePage(),
   ));
@@ -33,22 +35,25 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   double _loadWalletBalance = 0.0;
   double _monthlyIncome = 0.0;
   double _monthlyExpense = 0.0;
+  double _monthlyRevenue = 0.0; // New variable for revenue
+  bool _balancesLoaded = false;
   late AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
 
   final double _mayaCommissionRate = 0.03;
   final double _fixedMarkup = 3.0;
+  final double _serviceFeeRate = 0.02;
 
   @override
   void initState() {
     super.initState();
-    _loadBalances();
     _refreshController = AnimationController(
       vsync: this,
       duration: Duration(milliseconds: 500),
     );
     _refreshAnimation = CurvedAnimation(parent: _refreshController, curve: Curves.easeInOut);
     _customerPaysController.addListener(_autoCalculateWalletDeducted);
+    _loadBalances();
   }
 
   Future<void> _loadBalances() async {
@@ -59,8 +64,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _loadWalletBalance = box.get('load', defaultValue: 0.0);
       _monthlyIncome = box.get('income', defaultValue: 0.0);
       _monthlyExpense = box.get('expense', defaultValue: 0.0);
+      _monthlyRevenue = box.get('revenue', defaultValue: 0.0); // Load revenue
+      _balancesLoaded = true;
     });
-    await _saveBalances();
     _refreshController.reverse();
   }
 
@@ -70,6 +76,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     await box.put('load', _loadWalletBalance);
     await box.put('income', _monthlyIncome);
     await box.put('expense', _monthlyExpense);
+    await box.put('revenue', _monthlyRevenue); // Save revenue
   }
 
   void _editBalances() {
@@ -79,14 +86,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Balances', style: TextStyle(color: Colors.teal[700])),
+        title: Text('Edit Balances', style: TextStyle(color: Colors.green[700])),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextFormField(
               controller: _gcashBalanceController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimals
               decoration: InputDecoration(labelText: 'GCash Balance (₱)'),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Enter amount';
@@ -97,7 +104,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             SizedBox(height: 16),
             TextFormField(
               controller: _loadBalanceController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimals
               decoration: InputDecoration(labelText: 'Load Wallet Balance (₱)'),
               validator: (value) {
                 if (value == null || value.isEmpty) return 'Enter amount';
@@ -110,11 +117,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Colors.teal[700])),
+            child: Text('Cancel', style: TextStyle(color: Colors.green[700])),
           ),
           ElevatedButton(
             onPressed: () {
-              if (_gcashBalanceController.text.isNotEmpty && 
+              if (_gcashBalanceController.text.isNotEmpty &&
                   _loadBalanceController.text.isNotEmpty) {
                 setState(() {
                   _gcashBalance = double.parse(_gcashBalanceController.text);
@@ -126,8 +133,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             },
             child: Text('Save', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal[700],
+              backgroundColor: Colors.green[700],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
             ),
           ),
         ],
@@ -140,39 +148,83 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       if (_formKey.currentState!.validate()) {
         final amount = double.tryParse(_amountController.text);
         if (amount != null) {
+          final serviceFee = amount * _serviceFeeRate;
+          final totalAmount = amount + serviceFee;
           final box = Hive.box('transactions');
-          box.add({
-            'type': _transactionType,
-            'amount': amount,
-            'date': DateTime.now().toIso8601String(),
-          });
-          
-          setState(() {
-            if (_transactionType == 'gcash_in') {
-              _gcashBalance += amount;
-              _monthlyIncome += amount;
-            } else if (_transactionType == 'gcash_out') {
-              _gcashBalance -= amount;
-              _monthlyExpense += amount;
-            } else if (_transactionType == 'topup') {
-              if (_gcashBalance >= amount) { // Check if sufficient GCash balance
-                _loadWalletBalance += amount;
-                _gcashBalance -= amount;
+          if (_transactionType == 'gcash_in') {
+            box.add({
+              'type': _transactionType,
+              'amount': -amount,
+              'serviceFee': serviceFee,
+              'profit': serviceFee,
+              'totalAmount': -amount,
+              'date': DateTime.now().toIso8601String(),
+            });
+            setState(() {
+              if (_gcashBalance >= totalAmount) {
+                _gcashBalance -= totalAmount;
+                _monthlyIncome += amount; // Income from cash-in amount
+                _monthlyRevenue += serviceFee; // Service fee as revenue
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Insufficient GCash balance for top-up!'), backgroundColor: Colors.red),
+                  SnackBar(content: Text('Insufficient GCash balance for cash-in!'), backgroundColor: Colors.red),
                 );
                 return;
               }
-            } else if (_transactionType == 'gcash_topup') {
+            });
+          } else if (_transactionType == 'gcash_out') {
+            box.add({
+              'type': _transactionType,
+              'amount': amount,
+              'serviceFee': serviceFee,
+              'profit': 0.0,
+              'totalAmount': amount,
+              'date': DateTime.now().toIso8601String(),
+            });
+            setState(() {
               _gcashBalance += amount;
+              _monthlyIncome += amount; // Income from cash-out amount
+              _monthlyRevenue += serviceFee; // Service fee as revenue
+            });
+          } else if (_transactionType == 'topup') {
+            if (_gcashBalance >= amount) {
+              box.add({
+                'type': _transactionType,
+                'amount': amount,
+                'serviceFee': 0.0,
+                'profit': 0.0,
+                'totalAmount': amount,
+                'date': DateTime.now().toIso8601String(),
+              });
+              setState(() {
+                _loadWalletBalance += amount;
+                _gcashBalance -= amount;
+                _monthlyExpense += amount; // Top-up as expense
+              });
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Insufficient GCash balance for top-up!'), backgroundColor: Colors.red),
+              );
+              return;
             }
-          });
-          
+          } else if (_transactionType == 'gcash_topup') {
+            box.add({
+              'type': _transactionType,
+              'amount': amount,
+              'serviceFee': 0.0,
+              'profit': 0.0,
+              'totalAmount': amount,
+              'date': DateTime.now().toIso8601String(),
+            });
+            setState(() {
+              _gcashBalance += amount;
+              _monthlyExpense += amount; // GCash top-up as expense
+            });
+          }
           _amountController.clear();
           _saveBalances();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Transaction saved!'), backgroundColor: Colors.teal[700]),
+            SnackBar(content: Text('Transaction saved!'), backgroundColor: Colors.green[700]),
           );
         }
       }
@@ -184,7 +236,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final walletDeducted = double.tryParse(_walletDeductedController.text);
 
     if (customerPays != null && walletDeducted != null) {
-      final profit = customerPays - walletDeducted;
+      final profit = customerPays - walletDeducted; // Profit = Maya commission + markup
       final box = Hive.box('transactions');
       box.add({
         'type': 'load',
@@ -197,14 +249,15 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       setState(() {
         _loadWalletBalance -= walletDeducted;
         _gcashBalance += customerPays;
-        _monthlyIncome += customerPays;
+        _monthlyIncome += customerPays; // Income from customer payment
+        _monthlyRevenue += profit; // Maya commission + markup as revenue
       });
 
       _customerPaysController.clear();
       _walletDeductedController.clear();
       _saveBalances();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Load transaction saved!'), backgroundColor: Colors.teal[700]),
+        SnackBar(content: Text('Load transaction saved!'), backgroundColor: Colors.green[700]),
       );
     }
   }
@@ -238,15 +291,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    if (!_balancesLoaded) {
+      return Center(child: CircularProgressIndicator());
+    }
     final now = DateTime.now();
     return Scaffold(
-      backgroundColor: Colors.teal[50],
+      backgroundColor: Colors.green[50],
       floatingActionButton: FloatingActionButton(
         onPressed: _editBalances,
-        child: Icon(Icons.edit),
-        backgroundColor: Colors.teal[700],
+        child: Icon(Icons.edit, color: Colors.white),
+        backgroundColor: Colors.green[700],
         elevation: 6,
-        shape: CircleBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
@@ -257,7 +313,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.teal[700],
+                color: Colors.green[700],
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
               ),
@@ -280,7 +336,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   ),
                   CircleAvatar(
                     backgroundColor: Colors.white,
-                    child: Icon(Icons.person, color: Colors.teal[700]),
+                    child: Icon(Icons.person, color: Colors.green[700]),
                   ),
                 ],
               ),
@@ -303,9 +359,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         RotationTransition(
                           turns: _refreshAnimation,
                           child: IconButton(
-                            icon: Icon(Icons.refresh),
+                            icon: Icon(Icons.refresh, color: Colors.green[700]),
                             onPressed: _loadBalances,
                             tooltip: 'Refresh balances',
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.green[50],
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              elevation: 2,
+                            ),
                           ),
                         ),
                       ],
@@ -356,6 +417,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           isIncome: true,
                         ),
                         _buildCashFlowItem(
+                          title: 'Revenue',
+                          amount: _monthlyRevenue,
+                          isIncome: true,
+                        ),
+                        _buildCashFlowItem(
                           title: 'Expense',
                           amount: _monthlyExpense,
                           isIncome: false,
@@ -366,7 +432,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     LinearProgressIndicator(
                       value: _monthlyIncome > 0 ? _monthlyExpense / _monthlyIncome : 0,
                       backgroundColor: Colors.red[100],
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -374,7 +440,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green : Colors.red,
+                        color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
                       ),
                     ),
                   ],
@@ -422,7 +488,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       if (_transactionType != 'load') ...[
                         TextFormField(
                           controller: _amountController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimals
                           decoration: InputDecoration(
                             labelText: 'Amount (₱)',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -435,10 +501,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             return null;
                           },
                         ),
+                        if (_transactionType == 'gcash_in' || _transactionType == 'gcash_out') ...[
+                          SizedBox(height: 8),
+                          Text(
+                            'Service Fee (2%): ₱${(double.tryParse(_amountController.text) ?? 0.0) * _serviceFeeRate}',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
                       ] else ...[
                         TextFormField(
                           controller: _customerPaysController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimals
                           decoration: InputDecoration(
                             labelText: 'Customer Pays (₱)',
                             hintText: 'e.g. 53 for GIGA50',
@@ -458,7 +531,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         SizedBox(height: 16),
                         TextFormField(
                           controller: _walletDeductedController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true), // Allow decimals
                           decoration: InputDecoration(
                             labelText: 'Wallet Deducted (₱)',
                             hintText: 'Auto-calculated, but editable',
@@ -478,12 +551,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         onPressed: _transactionType == 'load' ? _saveLoadTransaction : _saveTransaction,
                         child: Text(
                           _transactionType == 'load' ? 'Log Load Transaction' : 'Log Transaction',
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                         style: ElevatedButton.styleFrom(
                           minimumSize: Size(double.infinity, 50),
-                          backgroundColor: Colors.teal[700],
+                          backgroundColor: Colors.green[700],
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 6,
+                          shadowColor: Colors.green[900]?.withOpacity(0.3),
                         ),
                       ),
                     ],
@@ -508,12 +583,23 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         Text('Recent Transactions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         TextButton(
                           onPressed: () {},
-                          child: Text('View All', style: TextStyle(color: Colors.teal[700])),
+                          child: Text(
+                            'View All',
+                            style: TextStyle(color: Colors.green[700], fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.green[700],
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            elevation: 0,
+                            overlayColor: Colors.green[100],
+                            backgroundColor: Colors.transparent,
+                          ),
                         ),
                       ],
                     ),
                     SizedBox(height: 16),
-                    _transactionType == 'load' 
+                    _transactionType == 'load'
                         ? _buildLoadTransactionList()
                         : _buildTodayTransactionList(),
                   ],
@@ -624,15 +710,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   Widget _buildTransactionItem(Map<dynamic, dynamic> item) {
     String typeLabel;
     bool isIncome = false;
-    
+    double displayAmount = item['amount'] is num ? item['amount'].toDouble() : 0.0;
+
     switch (item['type']) {
       case 'gcash_in':
         typeLabel = 'GCash Cash In';
-        isIncome = true;
+        isIncome = false;
         break;
       case 'gcash_out':
         typeLabel = 'GCash Cash Out';
-        isIncome = false;
+        isIncome = true;
         break;
       case 'topup':
         typeLabel = 'Load Wallet Top-up';
@@ -679,11 +766,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   DateTime.parse(item['date']).toString().substring(0, 16),
                   style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
+                if (item['serviceFee'] != null) ...[
+                  SizedBox(height: 4),
+                  Text(
+                    'Service Fee: ₱${item['serviceFee'].toStringAsFixed(2)}',
+                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                ],
+                if (item['profit'] != null && item['type'] == 'gcash_in') ...[
+                  SizedBox(height: 4),
+                  Text(
+                    'Profit: ₱${item['profit'].toStringAsFixed(2)}',
+                    style: TextStyle(color: Colors.green[700], fontSize: 12),
+                  ),
+                ],
               ],
             ),
           ),
           Text(
-            '₱${item['amount'].toStringAsFixed(2)}',
+            (item['type'] == 'gcash_in'
+                ? '-₱${displayAmount.abs().toStringAsFixed(2)}'
+                : '+₱${displayAmount.abs().toStringAsFixed(2)}'),
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -712,8 +815,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             children: [
               Text('Load Sale', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               Text(
-                '₱${item['customerPays'].toStringAsFixed(2)}',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[700]),
+                '-₱${item['customerPays'].toStringAsFixed(2)}', // Show as negative
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.red[700]),
               ),
             ],
           ),
@@ -722,7 +825,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Deducted: ₱${item['deducted'].toStringAsFixed(2)}',
+                'Deducted: -₱${item['deducted'].toStringAsFixed(2)}', // Show as negative
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
               Text(

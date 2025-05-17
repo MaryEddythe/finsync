@@ -34,17 +34,17 @@ class _ReportPageState extends State<ReportPage> {
 
       if (tx['type'] == 'gcash_in' || tx['type'] == 'gcash_topup') {
         gcashReports.add(Map<String, dynamic>.from(tx));
-        totalIncome += (tx['amount'] ?? 0.0);
+        totalIncome += double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0;
       } else if (tx['type'] == 'gcash_out') {
         gcashReports.add(Map<String, dynamic>.from(tx));
-        totalExpenses += (tx['amount'] ?? 0.0);
+        totalExpenses += double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0;
       } else if (tx['type'] == 'load') {
         loadWalletReports.add(Map<String, dynamic>.from(tx));
-        totalIncome += (tx['customerPays'] ?? 0.0);
-        totalExpenses += (tx['deducted'] ?? 0.0);
+        totalIncome += double.tryParse(tx['customerPays']?.toString() ?? '0.0') ?? 0.0;
+        totalExpenses += double.tryParse(tx['deducted']?.toString() ?? '0.0') ?? 0.0;
       } else if (tx['type'] == 'topup') {
         loadWalletReports.add(Map<String, dynamic>.from(tx));
-        totalExpenses += (tx['amount'] ?? 0.0);
+        totalExpenses += double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0;
       }
     }
 
@@ -145,85 +145,87 @@ class _ReportPageState extends State<ReportPage> {
           ),
         ),
         SizedBox(height: 8),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: reports.length,
-          itemBuilder: (context, index) {
-            final tx = reports[index];
-            String subtitle = '';
-            String amountStr = '';
-            Color amountColor = Colors.black;
-            bool isIncome = false;
-            String date = DateTime.parse(tx['date']).toString().substring(0, 16);
+        Expanded( // Added Expanded to prevent overflow
+          child: ListView.builder(
+            shrinkWrap: true,
+            physics: ClampingScrollPhysics(), // Changed to ClampingScrollPhysics for better behavior
+            itemCount: reports.length,
+            itemBuilder: (context, index) {
+              final tx = reports[index];
+              String subtitle = '';
+              String amountStr = '';
+              Color amountColor = Colors.black;
+              bool isIncome = false;
+              String date = tx['date'] != null ? (DateTime.tryParse(tx['date']?.toString() ?? '')?.toString().substring(0, 16) ?? 'Invalid Date') : 'No date';
 
-            if (tx['type'] == 'gcash_in') {
-              subtitle = 'GCash Cash In';
-              amountStr = '₱${(tx['amount'] ?? 0.0).toStringAsFixed(2)}';
-              amountColor = Colors.green[700]!;
-              isIncome = true;
-            } else if (tx['type'] == 'gcash_out') {
-              subtitle = 'GCash Cash Out';
-              amountStr = '₱${(tx['amount'] ?? 0.0).toStringAsFixed(2)}';
-              amountColor = Colors.red[700]!;
-              isIncome = false;
-            } else if (tx['type'] == 'gcash_topup') {
-              subtitle = 'GCash Top-up';
-              amountStr = '₱${(tx['amount'] ?? 0.0).toStringAsFixed(2)}';
-              amountColor = Colors.green[700]!;
-              isIncome = true;
-            } else if (tx['type'] == 'load') {
-              double customerPays = tx['customerPays'] ?? 0.0;
-              double deducted = tx['deducted'] ?? 0.0;
-              double profit = tx['profit'] ?? 0.0;
-              subtitle = 'Load Sale - Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)}';
-              amountStr = '₱${customerPays.toStringAsFixed(2)}';
-              amountColor = Colors.green[700]!;
-              isIncome = true;
-            } else if (tx['type'] == 'topup') {
-              subtitle = 'Load Wallet Top-up';
-              amountStr = '₱${(tx['amount'] ?? 0.0).toStringAsFixed(2)}';
-              amountColor = Colors.red[700]!;
-              isIncome = false;
-            } else {
-              subtitle = tx['type'] ?? '';
-              amountStr = '₱${(tx['amount'] ?? 0.0).toStringAsFixed(2)}';
-              amountColor = Colors.black;
-            }
+              if (tx['type'] == 'gcash_in') {
+                subtitle = 'GCash Cash In';
+                amountStr = '₱${(double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}';
+                amountColor = Colors.green[700]!;
+                isIncome = true;
+              } else if (tx['type'] == 'gcash_out') {
+                subtitle = 'GCash Cash Out';
+                amountStr = '₱${(double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}';
+                amountColor = Colors.red[700]!;
+                isIncome = false;
+              } else if (tx['type'] == 'gcash_topup') {
+                subtitle = 'GCash Top-up';
+                amountStr = '₱${(double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}';
+                amountColor = Colors.green[700]!;
+                isIncome = true;
+              } else if (tx['type'] == 'load') {
+                double customerPays = double.tryParse(tx['customerPays']?.toString() ?? '0.0') ?? 0.0;
+                double deducted = double.tryParse(tx['deducted']?.toString() ?? '0.0') ?? 0.0;
+                double profit = double.tryParse(tx['profit']?.toString() ?? '0.0') ?? 0.0;
+                subtitle = 'Load Sale - Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)}';
+                amountStr = '₱${customerPays.toStringAsFixed(2)}';
+                amountColor = Colors.green[700]!;
+                isIncome = true;
+              } else if (tx['type'] == 'topup') {
+                subtitle = 'Load Wallet Top-up';
+                amountStr = '₱${(double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}';
+                amountColor = Colors.red[700]!;
+                isIncome = false;
+              } else {
+                subtitle = tx['type'] ?? '';
+                amountStr = '₱${(double.tryParse(tx['amount']?.toString() ?? '0.0') ?? 0.0).toStringAsFixed(2)}';
+                amountColor = Colors.black;
+              }
 
-            return Card(
-              elevation: 4,
-              margin: EdgeInsets.symmetric(vertical: 4),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                contentPadding: EdgeInsets.all(12),
-                leading: CircleAvatar(
-                  backgroundColor: isIncome ? Colors.green[100] : Colors.red[100],
-                  child: Icon(
-                    isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                    color: amountColor,
-                    size: 20,
+              return Card(
+                elevation: 4,
+                margin: EdgeInsets.symmetric(vertical: 4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(12),
+                  leading: CircleAvatar(
+                    backgroundColor: isIncome ? Colors.green[100] : Colors.red[100],
+                    child: Icon(
+                      isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                      color: amountColor,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    subtitle,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    'Date: $date',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  trailing: Text(
+                    amountStr,
+                    style: TextStyle(
+                      color: amountColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-                title: Text(
-                  subtitle,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                subtitle: Text(
-                  'Date: $date',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                trailing: Text(
-                  amountStr,
-                  style: TextStyle(
-                    color: amountColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
         SizedBox(height: 24),
       ],
@@ -232,89 +234,94 @@ class _ReportPageState extends State<ReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6B48FF), Color(0xFFD1C4E9)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+    return DefaultTabController( // Added DefaultTabController with length 3
+      length: 3,
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6B48FF), Color(0xFFD1C4E9)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // AppBar Section
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Reports',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // AppBar Section
+                Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Reports',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.refresh, color: Colors.white),
-                      onPressed: _loadReports,
-                      tooltip: 'Refresh Reports',
-                    ),
-                  ],
-                ),
-              ),
-              // TabBar
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: TabBar(
-                  tabs: [
-                    Tab(
-                      icon: Icon(Icons.account_balance_wallet, color: Colors.teal[700]),
-                      text: 'GCash',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.phone_android, color: Colors.teal[700]),
-                      text: 'Load',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.summarize, color: Colors.teal[700]),
-                      text: 'Overall',
-                    ),
-                  ],
-                  labelColor: Colors.teal[700],
-                  unselectedLabelColor: Colors.white70,
-                  indicatorColor: Colors.teal[700],
-                  indicatorWeight: 3,
-                ),
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    SingleChildScrollView(
-                      padding: EdgeInsets.all(16),
-                      child: _buildReportList('GCash Reports', _gcashReports),
-                    ),
-                    SingleChildScrollView(
-                      padding: EdgeInsets.all(16),
-                      child: _buildReportList('Load Wallet Reports', _loadWalletReports),
-                    ),
-                    SingleChildScrollView(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSummaryCard(),
-                          _buildReportList('All Transactions', _allReports),
-                        ],
+                      IconButton(
+                        icon: Icon(Icons.refresh, color: Colors.white),
+                        onPressed: _loadReports,
+                        tooltip: 'Refresh Reports',
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                // TabBar
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: TabBar(
+                    tabs: [
+                      Tab(
+                        icon: Icon(Icons.account_balance_wallet, color: Colors.green[700]), // Changed to green
+                        text: 'GCash',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.phone_android, color: Colors.green[700]), // Changed to green
+                        text: 'Load',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.summarize, color: Colors.green[700]), // Changed to green
+                        text: 'Overall',
+                      ),
+                    ],
+                    labelColor: Colors.green[700], // Changed to green
+                    unselectedLabelColor: Colors.white70,
+                    indicatorColor: Colors.green[700], // Changed to green
+                    indicatorWeight: 3,
+                  ),
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      SingleChildScrollView(
+                        padding: EdgeInsets.all(16),
+                        child: _buildReportList('GCash Reports', _gcashReports),
+                      ),
+                      SingleChildScrollView(
+                        padding: EdgeInsets.all(16),
+                        child: _buildReportList('Load Wallet Reports', _loadWalletReports),
+                      ),
+                      SingleChildScrollView(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSummaryCard(),
+                            Expanded( // Added Expanded to prevent overflow
+                              child: _buildReportList('All Transactions', _allReports),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
