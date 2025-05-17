@@ -11,6 +11,8 @@ class _CalcPageState extends State<CalcPage> {
   double _serviceFee = 0.0;
   double _totalAmount = 0.0;
   bool _showFeeTable = false;
+  double _monthlyBalance = 1230.00;
+  double _todayAmount = 30.60;
 
   void _calculateFee() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
@@ -57,12 +59,13 @@ class _CalcPageState extends State<CalcPage> {
     } else if (amount <= 7000) {
       fee = 140;
     } else {
-      fee = 0; // For amounts above ₱7,000
+      fee = 0;
     }
 
     setState(() {
       _serviceFee = fee;
       _totalAmount = amount + fee;
+      _todayAmount += amount;
     });
   }
 
@@ -70,15 +73,17 @@ class _CalcPageState extends State<CalcPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final primaryColor = theme.colorScheme.primary;
+    final primaryColor = Colors.blue[700];
     final surfaceColor = theme.colorScheme.surface;
     final onSurface = theme.colorScheme.onSurface;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('GCash Load Calculator', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('GCash Finance Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 0,
+        backgroundColor: primaryColor,
         actions: [
           IconButton(
             icon: Icon(Icons.info_outline),
@@ -87,7 +92,7 @@ class _CalcPageState extends State<CalcPage> {
                 context: context,
                 builder: (context) => AlertDialog(
                   title: Text('About'),
-                  content: Text('This calculator helps you determine the service fees for cashing in to your GCash wallet.'),
+                  content: Text('Track your GCash transactions and calculate service fees.'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -105,25 +110,65 @@ class _CalcPageState extends State<CalcPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Input Card
+            // Header with greeting
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Hello, User!', style: TextStyle(fontSize: 20, color: Colors.white)),
+                  SizedBox(height: 4),
+                  Text('Track your GCash transactions', style: TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Balance Overview
+            Row(
+              children: [
+                Expanded(
+                  child: _buildBalanceCard(
+                    title: 'Monthly Balance',
+                    amount: _monthlyBalance,
+                    icon: Icons.calendar_today,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildBalanceCard(
+                    title: 'Today',
+                    amount: _todayAmount,
+                    icon: Icons.today,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+
+            // Calculator Section
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Column(
                   children: [
                     Text(
-                      'Enter Cash-In Amount',
+                      'GCash Load Calculator',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: onSurface.withOpacity(0.8),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: onSurface.withOpacity(0.9),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 16),
                     TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -134,13 +179,13 @@ class _CalcPageState extends State<CalcPage> {
                         prefixText: '₱',
                         prefixStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                         filled: true,
                         fillColor: isDarkMode ? surfaceColor.withOpacity(0.5) : Colors.grey[100],
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-                        hintText: '0.00',
+                        hintText: 'Enter amount',
                         hintStyle: TextStyle(color: onSurface.withOpacity(0.4)),
                         suffixIcon: _amountController.text.isNotEmpty
                             ? IconButton(
@@ -152,45 +197,47 @@ class _CalcPageState extends State<CalcPage> {
                               )
                             : null,
                       ),
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.end,
                       onChanged: (value) => _calculateFee(),
                     ),
+                    SizedBox(height: 20),
+                    _buildResultRow('Amount:', '₱${_amountController.text.isEmpty ? '0.00' : double.tryParse(_amountController.text)?.toStringAsFixed(2) ?? '0.00'}'),
+                    Divider(height: 24, thickness: 0.5),
+                    _buildResultRow('Service Fee:', '-₱${_serviceFee.toStringAsFixed(2)}', isFee: true),
+                    Divider(height: 24, thickness: 0.5),
+                    _buildResultRow('Total:', '₱${_totalAmount.toStringAsFixed(2)}', isTotal: true),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
 
-            // Results Card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildAmountRow('Cash-In Amount:', _amountController.text.isEmpty ? 0.0 : double.tryParse(_amountController.text) ?? 0.0),
-                    Divider(height: 24, thickness: 0.5),
-                    _buildAmountRow('Service Fee:', _serviceFee, isFee: true),
-                    Divider(height: 24, thickness: 0.5),
-                    _buildAmountRow('Total Amount:', _totalAmount, isTotal: true),
-                  ],
-                ),
-              ),
+            // Categories Section
+            Text('Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildCategoryChip('Food', Icons.fastfood),
+                _buildCategoryChip('Transport', Icons.directions_bus),
+                _buildCategoryChip('Shopping', Icons.shopping_bag),
+                _buildCategoryChip('Bills', Icons.receipt),
+                _buildCategoryChip('Entertainment', Icons.movie),
+                _buildCategoryChip('Others', Icons.more_horiz),
+              ],
             ),
             SizedBox(height: 20),
 
-            // Fee Table Toggle
+            // Fee Table Section
             OutlinedButton.icon(
               icon: Icon(_showFeeTable ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
-              label: Text(_showFeeTable ? 'Hide Fee Table' : 'Show Fee Table'),
+              label: Text(_showFeeTable ? 'Hide Fee Structure' : 'Show Fee Structure'),
               style: OutlinedButton.styleFrom(
                 padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               onPressed: () {
@@ -201,65 +248,46 @@ class _CalcPageState extends State<CalcPage> {
             ),
             SizedBox(height: 12),
 
-            // Fee Table
             if (_showFeeTable) ...[
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Cash-In Fee Chart',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Service fees for cashing in to GCash',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: onSurface.withOpacity(0.6),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: DataTable(
-                              headingRowHeight: 40,
-                              dataRowHeight: 36,
-                              columnSpacing: 24,
-                              horizontalMargin: 16,
-                              columns: [
-                                DataColumn(
-                                  label: Text(
-                                    'Cash-In Amount (₱)',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                DataColumn(
-                                  label: Text(
-                                    'Service Fee (₱)',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ],
-                              rows: _buildFeeTableRows(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'GCash Fee Structure',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
+                          Text(
+                            'Updated today',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: onSurface.withOpacity(0.6),
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columnSpacing: 24,
+                          columns: [
+                            DataColumn(label: Text('Amount Range (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Fee (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: _buildFeeTableRows(),
                         ),
                       ),
                     ],
@@ -273,10 +301,39 @@ class _CalcPageState extends State<CalcPage> {
     );
   }
 
-  Widget _buildAmountRow(String label, double amount, {bool isFee = false, bool isTotal = false}) {
-    final theme = Theme.of(context);
-    final amountColor = isTotal ? theme.colorScheme.primary : theme.colorScheme.onSurface;
+  Widget _buildBalanceCard({required String title, required double amount, required IconData icon}) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: Colors.blue[700]),
+                SizedBox(width: 8),
+                Text(title, style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
+            SizedBox(height: 8),
+            Text(
+              '₱${amount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
+  Widget _buildResultRow(String label, String value, {bool isFee = false, bool isTotal = false}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -285,25 +342,33 @@ class _CalcPageState extends State<CalcPage> {
           style: TextStyle(
             fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-            color: theme.colorScheme.onSurface.withOpacity(isTotal ? 0.9 : 0.7),
+            color: Colors.grey[600],
           ),
         ),
         Text(
-          '₱${amount.toStringAsFixed(2)}',
+          value,
           style: TextStyle(
-            fontSize: isTotal ? 18 : 14,
+            fontSize: isTotal ? 18 : 16,
             fontWeight: FontWeight.bold,
-            color: isFee ? Colors.red : amountColor,
+            color: isFee ? Colors.red : isTotal ? Colors.blue[700] : Colors.black,
           ),
         ),
       ],
     );
   }
 
+  Widget _buildCategoryChip(String label, IconData icon) {
+    return Chip(
+      avatar: Icon(icon, size: 18),
+      label: Text(label),
+      backgroundColor: Colors.grey[100],
+    );
+  }
+
   List<DataRow> _buildFeeTableRows() {
     return [
       _buildFeeTableRow('1 - 100', '5'),
-      _buildFeeTableRow('201 - 300', '10'),
+      _buildFeeTableRow('101 - 300', '10'),
       _buildFeeTableRow('301 - 500', '15'),
       _buildFeeTableRow('501 - 1,000', '25'),
       _buildFeeTableRow('1,001 - 1,500', '35'),
@@ -323,28 +388,10 @@ class _CalcPageState extends State<CalcPage> {
 
   DataRow _buildFeeTableRow(String range, String fee) {
     final isCurrentRange = _isInCurrentRange(range);
-    final theme = Theme.of(context);
-
     return DataRow(
       cells: [
-        DataCell(
-          Text(
-            range,
-            style: TextStyle(
-              fontWeight: isCurrentRange ? FontWeight.bold : FontWeight.normal,
-              color: isCurrentRange ? theme.colorScheme.primary : null,
-            ),
-          ),
-        ),
-        DataCell(
-          Text(
-            fee,
-            style: TextStyle(
-              fontWeight: isCurrentRange ? FontWeight.bold : FontWeight.normal,
-              color: isCurrentRange ? theme.colorScheme.primary : null,
-            ),
-          ),
-        ),
+        DataCell(Text(range, style: TextStyle(fontWeight: isCurrentRange ? FontWeight.bold : FontWeight.normal))),
+        DataCell(Text(fee, style: TextStyle(fontWeight: isCurrentRange ? FontWeight.bold : FontWeight.normal))),
       ],
     );
   }
