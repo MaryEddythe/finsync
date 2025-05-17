@@ -1,17 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'pages/home_page.dart';
 import 'pages/calc_page.dart';
 import 'pages/wallet_page.dart';
 import 'pages/history_page.dart';
 import 'pages/report_page.dart';
 
-void main() => runApp(FinSyncApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(AppInitializer());
+}
+
+class AppInitializer extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _initHive(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return MaterialApp(
+            home: Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+        return FinSyncApp();
+      },
+    );
+  }
+
+  Future<void> _initHive() async {
+    await Hive.initFlutter();
+    await Hive.openBox('transactions');
+  }
+}
 
 class FinSyncApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Finsync',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,
       ),
@@ -53,6 +83,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.deepPurple,
+        unselectedItemColor: Colors.grey,
         onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
