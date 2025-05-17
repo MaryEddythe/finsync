@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'pages/home_page.dart';
 import 'pages/calc_page.dart';
-import 'pages/wallet_page.dart';
+import 'pages/wallet_page.dart' as wallet;
 import 'pages/history_page.dart';
 import 'pages/report_page.dart';
 
@@ -33,6 +33,7 @@ class AppInitializer extends StatelessWidget {
   Future<void> _initHive() async {
     await Hive.initFlutter();
     await Hive.openBox('transactions');
+    await Hive.openBox('balances'); // <-- Add this line
   }
 }
 
@@ -59,11 +60,11 @@ class _BottomNavPageState extends State<BottomNavPage> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-    HomePage(),
-    CalcPage(),
-    WalletPage(),
-    HistoryPage(),
-    ReportPage(),
+    HomePage(),                // Home
+    CalcPage(),                // Calc
+    wallet.WalletPage(),       // Wallet
+    HistoryPage(),             // History
+    ReportPage(),              // Report
   ];
 
   void _onItemTapped(int index) {

@@ -11,7 +11,7 @@ class _WalletPageState extends State<WalletPage> {
   double _loadWalletBalance = 0.0;
   double _totalRevenue = 0.0;
   double _totalProfit = 0.0;
-  double _mayaCommissionRate = 0.03; 
+  double _mayaCommissionRate = 0.03;
   double _fixedMarkup = 3.0;
 
   @override
@@ -36,11 +36,8 @@ class _WalletPageState extends State<WalletPage> {
       if (tx['type'] == 'load') {
         double customerPays = tx['customerPays'] ?? 0.0;
         double deducted = tx['deducted'] ?? 0.0;
-        // Maya commission is deducted amount * commission rate
         double mayaCommission = deducted * _mayaCommissionRate;
-        // User's markup is fixed ₱3.00 per load sale
         double userMarkup = _fixedMarkup;
-        // Profit is user markup plus difference between deducted and maya commission
         double txProfit = userMarkup + (deducted - mayaCommission);
         revenue += customerPays;
         profit += txProfit;
@@ -98,35 +95,40 @@ class _WalletPageState extends State<WalletPage> {
         String subtitle = '';
         Color amountColor = Colors.black;
         double amount = 0.0;
+        String date = tx['date'] != null ? tx['date'].toString().substring(0, 10) : 'No date';
 
         if (type == 'load') {
           title = 'Load Sale';
           double customerPays = tx['customerPays'] ?? 0.0;
           double deducted = tx['deducted'] ?? 0.0;
-          double profit = tx['profit'] ?? 0.0;
-          subtitle = 'Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)}';
+          double profit = _fixedMarkup + (deducted - (deducted * _mayaCommissionRate));
+          subtitle = 'Paid: ₱${customerPays.toStringAsFixed(2)} | Deducted: ₱${deducted.toStringAsFixed(2)} | Profit: ₱${profit.toStringAsFixed(2)} | Date: $date';
           amount = customerPays;
           amountColor = Colors.green;
         } else if (type == 'gcash_in') {
           title = 'GCash Cash In';
           amount = tx['amount'] ?? 0.0;
+          subtitle = 'Date: $date';
           amountColor = Colors.green;
         } else if (type == 'gcash_out') {
           title = 'GCash Cash Out';
           amount = tx['amount'] ?? 0.0;
+          subtitle = 'Date: $date';
           amountColor = Colors.red;
         } else if (type == 'topup') {
           title = 'Load Wallet Top-up';
           amount = tx['amount'] ?? 0.0;
+          subtitle = 'Date: $date';
           amountColor = Colors.green;
         } else {
           title = type;
           amount = tx['amount'] ?? 0.0;
+          subtitle = 'Date: $date';
         }
 
         return ListTile(
           title: Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: subtitle.isNotEmpty ? Text(subtitle) : null,
+          subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: 12)) : null,
           trailing: Text(
             '₱${amount.toStringAsFixed(2)}',
             style: TextStyle(color: amountColor, fontWeight: FontWeight.bold),

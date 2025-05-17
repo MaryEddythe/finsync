@@ -13,6 +13,8 @@ class _CalcPageState extends State<CalcPage> {
   bool _showFeeTable = false;
   double _monthlyBalance = 1230.00;
   double _todayAmount = 30.60;
+  final String _userName = "User"; 
+  final DateTime _lastUpdated = DateTime.now();
 
   void _calculateFee() {
     final amount = double.tryParse(_amountController.text) ?? 0.0;
@@ -73,30 +75,31 @@ class _CalcPageState extends State<CalcPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final primaryColor = Colors.blue[700];
+    final primaryColor = Colors.teal[700]; // Soft green-blue inspired by design
+    final accentColor = Colors.blue[700];
     final surfaceColor = theme.colorScheme.surface;
     final onSurface = theme.colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.teal[50], // Soft background inspired by design
       appBar: AppBar(
-        title: Text('GCash Finance Tracker', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('GCash Finance Tracker', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         centerTitle: true,
         elevation: 0,
         backgroundColor: primaryColor,
         actions: [
           IconButton(
-            icon: Icon(Icons.info_outline),
+            icon: Icon(Icons.info_outline, color: Colors.white),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('About'),
+                  title: Text('About', style: TextStyle(color: primaryColor)),
                   content: Text('Track your GCash transactions and calculate service fees.'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('OK'),
+                      child: Text('OK', style: TextStyle(color: primaryColor)),
                     ),
                   ],
                 ),
@@ -108,21 +111,37 @@ class _CalcPageState extends State<CalcPage> {
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with greeting
+            // Greeting Section
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: primaryColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Hello, User!', style: TextStyle(fontSize: 20, color: Colors.white)),
-                  SizedBox(height: 4),
-                  Text('Track your GCash transactions', style: TextStyle(color: Colors.white70)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hello, $_userName!',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Track your GCash transactions',
+                        style: TextStyle(fontSize: 14, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person, color: primaryColor),
+                  ),
                 ],
               ),
             ),
@@ -130,21 +149,17 @@ class _CalcPageState extends State<CalcPage> {
 
             // Balance Overview
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: _buildBalanceCard(
-                    title: 'Monthly Balance',
-                    amount: _monthlyBalance,
-                    icon: Icons.calendar_today,
-                  ),
+                _buildStatCard(
+                  title: 'Monthly Balance',
+                  value: '₱${_monthlyBalance.toStringAsFixed(2)}',
+                  icon: Icons.calendar_today,
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: _buildBalanceCard(
-                    title: 'Today',
-                    amount: _todayAmount,
-                    icon: Icons.today,
-                  ),
+                _buildStatCard(
+                  title: 'Today',
+                  value: '₱${_todayAmount.toStringAsFixed(2)}',
+                  icon: Icons.today,
                 ),
               ],
             ),
@@ -152,23 +167,18 @@ class _CalcPageState extends State<CalcPage> {
 
             // Calculator Section
             Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'GCash Load Calculator',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: onSurface.withOpacity(0.9),
-                      ),
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: onSurface),
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 20),
                     TextField(
                       controller: _amountController,
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
@@ -178,10 +188,7 @@ class _CalcPageState extends State<CalcPage> {
                       decoration: InputDecoration(
                         prefixText: '₱',
                         prefixStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: isDarkMode ? surfaceColor.withOpacity(0.5) : Colors.grey[100],
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
@@ -202,43 +209,26 @@ class _CalcPageState extends State<CalcPage> {
                       onChanged: (value) => _calculateFee(),
                     ),
                     SizedBox(height: 20),
-                    _buildResultRow('Amount:', '₱${_amountController.text.isEmpty ? '0.00' : double.tryParse(_amountController.text)?.toStringAsFixed(2) ?? '0.00'}'),
-                    Divider(height: 24, thickness: 0.5),
-                    _buildResultRow('Service Fee:', '-₱${_serviceFee.toStringAsFixed(2)}', isFee: true),
-                    Divider(height: 24, thickness: 0.5),
-                    _buildResultRow('Total:', '₱${_totalAmount.toStringAsFixed(2)}', isTotal: true),
+                    SizedBox(height: 20),
+                    _buildResultRow('Amount', '₱${_amountController.text.isEmpty ? '0.00' : double.tryParse(_amountController.text)?.toStringAsFixed(2) ?? '0.00'}'),
+                    Divider(height: 24, thickness: 1),
+                    _buildResultRow('Service Fee', '-₱${_serviceFee.toStringAsFixed(2)}', isFee: true),
+                    Divider(height: 24, thickness: 1),
+                    _buildResultRow('Total', '₱${_totalAmount.toStringAsFixed(2)}', isTotal: true),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
 
-            // Categories Section
-            Text('Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _buildCategoryChip('Food', Icons.fastfood),
-                _buildCategoryChip('Transport', Icons.directions_bus),
-                _buildCategoryChip('Shopping', Icons.shopping_bag),
-                _buildCategoryChip('Bills', Icons.receipt),
-                _buildCategoryChip('Entertainment', Icons.movie),
-                _buildCategoryChip('Others', Icons.more_horiz),
-              ],
-            ),
-            SizedBox(height: 20),
-
-            // Fee Table Section
+            // Fee Table Toggle
             OutlinedButton.icon(
-              icon: Icon(_showFeeTable ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
-              label: Text(_showFeeTable ? 'Hide Fee Structure' : 'Show Fee Structure'),
+              icon: Icon(_showFeeTable ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: primaryColor),
+              label: Text(_showFeeTable ? 'Hide Fee Structure' : 'Show Fee Structure', style: TextStyle(color: primaryColor)),
               style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                side: BorderSide(color: primaryColor ?? Colors.teal),
               ),
               onPressed: () {
                 setState(() {
@@ -248,86 +238,77 @@ class _CalcPageState extends State<CalcPage> {
             ),
             SizedBox(height: 12),
 
-            if (_showFeeTable) ...[
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'GCash Fee Structure',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+            if (_showFeeTable)
+              AnimatedSize(
+                duration: Duration(milliseconds: 300),
+                child: Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'GCash Fee Structure',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: onSurface),
                             ),
-                          ),
-                          Text(
-                            'Updated today',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: onSurface.withOpacity(0.6),
+                            Text(
+                              'Last Updated: ${_lastUpdated.toString().substring(0, 16)}',
+                              style: TextStyle(fontSize: 12, color: onSurface.withOpacity(0.6)),
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columnSpacing: 24,
-                          columns: [
-                            DataColumn(label: Text('Amount Range (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Fee (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
                           ],
-                          rows: _buildFeeTableRows(),
                         ),
-                      ),
-                    ],
+                        SizedBox(height: 12),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columnSpacing: 24,
+                            columns: [
+                              DataColumn(label: Text('Amount Range (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
+                              DataColumn(label: Text('Fee (₱)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            ],
+                            rows: _buildFeeTableRows(),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBalanceCard({required String title, required double amount, required IconData icon}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20, color: Colors.blue[700]),
-                SizedBox(width: 8),
-                Text(title, style: TextStyle(color: Colors.grey[600])),
-              ],
-            ),
-            SizedBox(height: 8),
-            Text(
-              '₱${amount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+  Widget _buildStatCard({required String title, required String value, required IconData icon}) {
+    return Expanded(
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: Colors.teal[700]),
+                  SizedBox(width: 8),
+                  Text(title, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                ],
               ),
-            ),
-          ],
+              SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.teal[700]),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -350,18 +331,10 @@ class _CalcPageState extends State<CalcPage> {
           style: TextStyle(
             fontSize: isTotal ? 18 : 16,
             fontWeight: FontWeight.bold,
-            color: isFee ? Colors.red : isTotal ? Colors.blue[700] : Colors.black,
+            color: isFee ? Colors.red : isTotal ? Colors.teal[700] : Colors.black,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCategoryChip(String label, IconData icon) {
-    return Chip(
-      avatar: Icon(icon, size: 18),
-      label: Text(label),
-      backgroundColor: Colors.grey[100],
     );
   }
 
