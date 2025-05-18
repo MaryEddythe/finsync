@@ -93,12 +93,19 @@ class _WalletPageState extends State<WalletPage>
     for (var tx in transactionsBox.values) {
       if (tx['date'] == null) continue;
 
-      DateTime txDate = DateTime.parse(tx['date']);
+      DateTime? txDate;
+      try {
+        txDate = DateTime.tryParse(tx['date']);
+      } catch (_) {
+        continue;
+      }
+      if (txDate == null) continue;
+
       int daysSinceEpoch = txDate.difference(DateTime(2023, 1, 1)).inDays;
 
       if (tx['type'] == 'load') {
-        double customerPays = tx['customerPays'] ?? 0.0;
-        double deducted = tx['deducted'] ?? 0.0;
+        double customerPays = (tx['customerPays'] ?? 0.0).toDouble();
+        double deducted = (tx['deducted'] ?? 0.0).toDouble();
         double mayaCommission = deducted * _mayaCommissionRate;
         double txProfit = _fixedMarkup + (deducted - mayaCommission);
 
@@ -111,14 +118,14 @@ class _WalletPageState extends State<WalletPage>
         profitByDay[daysSinceEpoch] =
             (profitByDay[daysSinceEpoch] ?? 0) + txProfit;
       } else if (tx['type'] == 'gcash_in') {
-        double amount = tx['amount'] ?? 0.0;
+        double amount = (tx['amount'] ?? 0.0).toDouble();
         revenue += amount;
 
         // Add to chart data
         revenueByDay[daysSinceEpoch] =
             (revenueByDay[daysSinceEpoch] ?? 0) + amount;
       } else if (tx['type'] == 'gcash_out') {
-        double amount = tx['amount'] ?? 0.0;
+        double amount = (tx['amount'] ?? 0.0).toDouble();
         revenue -= amount;
 
         // Add to chart data
@@ -334,7 +341,6 @@ class _WalletPageState extends State<WalletPage>
                   ),
                   Expanded(child: SizedBox()),
                   // Navigation buttons for landscape mode
-                  _buildNavigationButtons(),
                 ],
               ),
             ),
@@ -376,18 +382,7 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  Widget _buildNavigationButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildNavButton(Icons.home, 'Home'),
-        SizedBox(width: _adaptiveSpacing(16)),
-        _buildNavButton(Icons.history, 'History'),
-        SizedBox(width: _adaptiveSpacing(16)),
-        _buildNavButton(Icons.settings, 'Settings'),
-      ],
-    );
-  }
+ 
 
   Widget _buildNavButton(IconData icon, String label) {
     return Column(
@@ -850,7 +845,6 @@ class _WalletPageState extends State<WalletPage>
                     ],
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        tooltipBgColor: Colors.blueGrey.shade800,
                         getTooltipItems: (List<LineBarSpot> touchedSpots) {
                           return touchedSpots.map((spot) {
                             return LineTooltipItem(
@@ -861,6 +855,7 @@ class _WalletPageState extends State<WalletPage>
                                     : Colors.green.shade100,
                                 fontWeight: FontWeight.bold,
                                 fontSize: _adaptiveFontSize(12),
+                                backgroundColor: Colors.blueGrey.shade800, // alternative bg color
                               ),
                             );
                           }).toList();
@@ -1354,9 +1349,16 @@ class _WalletPageState extends State<WalletPage>
     String formattedDate = '';
     String formattedTime = '';
     if (transaction['date'] != null) {
-      DateTime txDate = DateTime.parse(transaction['date']);
-      formattedDate = DateFormat('MMMM dd, yyyy').format(txDate);
-      formattedTime = DateFormat('hh:mm a').format(txDate);
+      DateTime? txDate;
+      try {
+        txDate = DateTime.tryParse(transaction['date']);
+      } catch (_) {
+        txDate = null;
+      }
+      if (txDate != null) {
+        formattedDate = DateFormat('MMMM dd, yyyy').format(txDate);
+        formattedTime = DateFormat('hh:mm a').format(txDate);
+      }
     }
 
     // Determine if we should use a full-screen dialog or bottom sheet based on screen size
@@ -1762,36 +1764,73 @@ class _WalletPageState extends State<WalletPage>
     List<Widget> items = [];
 
     if (type == 'load') {
+      double customerPays = 0.0;
+      double deducted = 0.0;
+      double commission = 0.0;
+      double profit = 0.0;
+
+      try {
+        customerPays = (transaction['customerPays'] ?? 0.0).toDouble();
+      } catch (_) {}
+
+      try {
+        deducted = (transaction['deducted'] ?? 0.0).toDouble();
+      } catch (_) {}
+
+      try {
+        commission = (transaction['commission'] ?? 0.0).toDouble();
+      } catch (_) {}
+
+      try {
+        profit = (transaction['profit'] ?? 0.0).toDouble();
+      } catch (_) {}
+
       items.add(_buildDetailItem(
         'Customer Pays',
-        '₱${transaction['customerPays'].toStringAsFixed(2)}',
+        '₱${customerPays.toStringAsFixed(2)}',
         Icons.payments_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Wallet Deducted',
-        '₱${transaction['deducted'].toStringAsFixed(2)}',
+        '₱${deducted.toStringAsFixed(2)}',
         Icons.remove_circle_outline_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Commission',
-        '₱${transaction['commission'].toStringAsFixed(2)}',
+        '₱${commission.toStringAsFixed(2)}',
         Icons.monetization_on_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Profit',
-        '₱${transaction['profit'].toStringAsFixed(2)}',
+        '₱${profit.toStringAsFixed(2)}',
         Icons.trending_up_rounded,
       ));
     } else {
+      double amount = 0.0;
+      double serviceFee = 0.0;
+      double totalAmount = 0.0;
+
+      try {
+        amount = (transaction['amount'] ?? 0.0).toDouble();
+      } catch (_) {}
+
+      try {
+        serviceFee = (transaction['serviceFee'] ?? 0.0).toDouble();
+      } catch (_) {}
+
+      try {
+        totalAmount = (transaction['totalAmount'] ?? 0.0).toDouble();
+      } catch (_) {}
+
       items.add(_buildDetailItem(
         'Amount',
-        '₱${transaction['amount'].toStringAsFixed(2)}',
+        '₱${amount.toStringAsFixed(2)}',
         Icons.attach_money_rounded,
       ));
 
@@ -1800,7 +1839,7 @@ class _WalletPageState extends State<WalletPage>
             Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
         items.add(_buildDetailItem(
           'Service Fee',
-          '₱${transaction['serviceFee'].toStringAsFixed(2)}',
+          '₱${serviceFee.toStringAsFixed(2)}',
           Icons.receipt_long_rounded,
         ));
       }
@@ -1810,7 +1849,7 @@ class _WalletPageState extends State<WalletPage>
             Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
         items.add(_buildDetailItem(
           'Total Amount',
-          '₱${transaction['totalAmount'].toStringAsFixed(2)}',
+          '₱${totalAmount.toStringAsFixed(2)}',
           Icons.account_balance_wallet_rounded,
         ));
       }
@@ -1921,7 +1960,6 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
     );
   }
 
-  @override
   double get minExtent => tabBar.preferredSize.height;
 
   @override

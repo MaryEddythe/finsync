@@ -1144,7 +1144,6 @@ class _ReportPageState extends State<ReportPage> {
                     ],
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        tooltipBgColor: Colors.blueGrey.shade800,
                         getTooltipItems: (List<LineBarSpot> touchedSpots) {
                           return touchedSpots.map((spot) {
                             final isIncome = spot.y >= 0;
@@ -1156,6 +1155,7 @@ class _ReportPageState extends State<ReportPage> {
                                     : Colors.red.shade300,
                                 fontWeight: FontWeight.bold,
                                 fontSize: _adaptiveFontSize(12),
+                                backgroundColor: Colors.blueGrey.shade800,
                               ),
                             );
                           }).toList();
@@ -1285,7 +1285,6 @@ class _ReportPageState extends State<ReportPage> {
                     ],
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        tooltipBgColor: Colors.blueGrey.shade800,
                         getTooltipItems: (List<LineBarSpot> touchedSpots) {
                           return touchedSpots.map((spot) {
                             final isIncome = spot.y >= 0;
@@ -1297,6 +1296,7 @@ class _ReportPageState extends State<ReportPage> {
                                     : Colors.orange.shade300,
                                 fontWeight: FontWeight.bold,
                                 fontSize: _adaptiveFontSize(12),
+                                backgroundColor: Colors.blueGrey.shade800,
                               ),
                             );
                           }).toList();
@@ -1426,7 +1426,6 @@ class _ReportPageState extends State<ReportPage> {
                     ],
                     lineTouchData: LineTouchData(
                       touchTooltipData: LineTouchTooltipData(
-                        tooltipBgColor: Colors.blueGrey.shade800,
                         getTooltipItems: (List<LineBarSpot> touchedSpots) {
                           return touchedSpots.map((spot) {
                             final isGCashTopup = spot.y >= 0;
@@ -1438,6 +1437,7 @@ class _ReportPageState extends State<ReportPage> {
                                     : Colors.orange.shade300,
                                 fontWeight: FontWeight.bold,
                                 fontSize: _adaptiveFontSize(12),
+                                backgroundColor: Colors.blueGrey.shade800,
                               ),
                             );
                           }).toList();

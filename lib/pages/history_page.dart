@@ -265,37 +265,57 @@ class _HistoryPageState extends State<HistoryPage>
     }
 
     final date = DateTime.parse(item['date']);
-    final formattedDate = DateFormat('MMM dd, yyyy').format(date);
     final formattedTime = DateFormat('hh:mm a').format(date);
 
     IconData transactionIcon;
     Color iconColor;
     String transactionTitle;
+    Color amountColor;
+    String amountPrefix;
 
     if (isLoad) {
       transactionIcon = Icons.smartphone_rounded;
       iconColor = Colors.blue;
       transactionTitle = 'Load Sale';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else if (transactionType == 'gcash_in') {
       transactionIcon = Icons.arrow_upward_rounded;
       iconColor = Colors.red;
-      transactionTitle = 'Cash In';
+      transactionTitle = 'GCash Cash In';
+      amountColor = Colors.red[700]!;
+      amountPrefix = '-';
     } else if (transactionType == 'gcash_out') {
       transactionIcon = Icons.arrow_downward_rounded;
       iconColor = Colors.green;
-      transactionTitle = 'Cash Out';
+      transactionTitle = 'GCash Cash Out';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else if (transactionType == 'topup') {
       transactionIcon = Icons.add_circle_outline_rounded;
       iconColor = Colors.orange;
       transactionTitle = 'Load Wallet Top-up';
+      amountColor = Colors.orange[700]!;
+      amountPrefix = '-';
     } else if (transactionType == 'gcash_topup') {
       transactionIcon = Icons.account_balance_wallet_rounded;
       iconColor = Colors.blue;
       transactionTitle = 'GCash Top-up';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else {
       transactionIcon = Icons.swap_horiz_rounded;
       iconColor = Colors.purple;
       transactionTitle = 'Transaction';
+      amountColor = Colors.black;
+      amountPrefix = '';
+    }
+
+    // Fee (serviceFee) if available
+    String? feeText;
+    if (item['serviceFee'] != null) {
+      final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
+      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -316,18 +336,18 @@ class _HistoryPageState extends State<HistoryPage>
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Show transaction details
             _showTransactionDetails(context, item);
           },
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
+                // Icon circle
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: iconColor.withOpacity(0.08),
+                    shape: BoxShape.circle,
                   ),
                   child: Icon(
                     transactionIcon,
@@ -336,6 +356,7 @@ class _HistoryPageState extends State<HistoryPage>
                   ),
                 ),
                 SizedBox(width: 16),
+                // Title and time
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,71 +365,47 @@ class _HistoryPageState extends State<HistoryPage>
                         transactionTitle,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.grey[800],
+                          fontSize: 15,
+                          color: Colors.grey[900],
                         ),
                       ),
                       SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: Colors.grey[500],
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '$formattedDate • $formattedTime',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        formattedTime,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
+                // Amount and fee
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${isIncome ? '+' : isLoad ? '+' : '-'}₱${amount.toStringAsFixed(2)}',
+                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isIncome || isLoad
-                            ? Colors.green[700]
-                            : Colors.red[700],
+                        fontSize: 17,
+                        color: amountColor,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 12,
-                            color: Colors.green[700],
+                    if (feeText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          feeText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                            fontWeight: FontWeight.w400,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -1623,37 +1620,57 @@ class _TransactionHistoryTab extends StatelessWidget {
     }
 
     final date = DateTime.parse(item['date']);
-    final formattedDate = DateFormat('MMM dd, yyyy').format(date);
     final formattedTime = DateFormat('hh:mm a').format(date);
 
     IconData transactionIcon;
     Color iconColor;
     String transactionTitle;
+    Color amountColor;
+    String amountPrefix;
 
     if (isLoad) {
       transactionIcon = Icons.smartphone_rounded;
       iconColor = Colors.blue;
       transactionTitle = 'Load Sale';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else if (transactionType == 'gcash_in') {
       transactionIcon = Icons.arrow_upward_rounded;
       iconColor = Colors.red;
-      transactionTitle = 'Cash In';
+      transactionTitle = 'GCash Cash In';
+      amountColor = Colors.red[700]!;
+      amountPrefix = '-';
     } else if (transactionType == 'gcash_out') {
       transactionIcon = Icons.arrow_downward_rounded;
       iconColor = Colors.green;
-      transactionTitle = 'Cash Out';
+      transactionTitle = 'GCash Cash Out';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else if (transactionType == 'topup') {
       transactionIcon = Icons.add_circle_outline_rounded;
       iconColor = Colors.orange;
       transactionTitle = 'Load Wallet Top-up';
+      amountColor = Colors.orange[700]!;
+      amountPrefix = '-';
     } else if (transactionType == 'gcash_topup') {
       transactionIcon = Icons.account_balance_wallet_rounded;
       iconColor = Colors.blue;
       transactionTitle = 'GCash Top-up';
+      amountColor = Colors.green[700]!;
+      amountPrefix = '+';
     } else {
       transactionIcon = Icons.swap_horiz_rounded;
       iconColor = Colors.purple;
       transactionTitle = 'Transaction';
+      amountColor = Colors.black;
+      amountPrefix = '';
+    }
+
+    // Fee (serviceFee) if available
+    String? feeText;
+    if (item['serviceFee'] != null) {
+      final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
+      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -1674,18 +1691,18 @@ class _TransactionHistoryTab extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            // Show transaction details
             _showTransactionDetails(context, item);
           },
           child: Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
+                // Icon circle
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: iconColor.withOpacity(0.08),
+                    shape: BoxShape.circle,
                   ),
                   child: Icon(
                     transactionIcon,
@@ -1694,6 +1711,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 16),
+                // Title and time
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1702,71 +1720,47 @@ class _TransactionHistoryTab extends StatelessWidget {
                         transactionTitle,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Colors.grey[800],
+                          fontSize: 15,
+                          color: Colors.grey[900],
                         ),
                       ),
                       SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 12,
-                            color: Colors.grey[500],
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '$formattedDate • $formattedTime',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        formattedTime,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
+                // Amount and fee
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${isIncome ? '+' : isLoad ? '+' : '-'}₱${amount.toStringAsFixed(2)}',
+                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: isIncome || isLoad
-                            ? Colors.green[700]
-                            : Colors.red[700],
+                        fontSize: 17,
+                        color: amountColor,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[50],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            size: 12,
-                            color: Colors.green[700],
+                    if (feeText != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2.0),
+                        child: Text(
+                          feeText,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
+                            fontWeight: FontWeight.w400,
                           ),
-                          SizedBox(width: 4),
-                          Text(
-                            'Completed',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],

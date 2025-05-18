@@ -48,6 +48,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   // For transaction form visibility
   bool _showTransactionForm = false;
 
+  DateTime? _selectedDate; // <-- add this line
+
   @override
   void initState() {
     super.initState();
@@ -552,9 +554,46 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Monthly Cash Flow',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                        Row(
+                          children: [
+                            Text(
+                              'Monthly Cash Flow',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                            ),
+                            SizedBox(width: 8),
+                            IconButton(
+                              icon: Icon(Icons.calendar_today_rounded, color: Colors.green[700], size: 20),
+                              tooltip: 'Pick a date',
+                              onPressed: () async {
+                                DateTime now = DateTime.now();
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: _selectedDate ?? now,
+                                  firstDate: DateTime(now.year - 2),
+                                  lastDate: DateTime(now.year + 1),
+                                );
+                                if (picked != null) {
+                                  setState(() {
+                                    _selectedDate = picked;
+                                  });
+                                }
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                            ),
+                            if (_selectedDate != null)
+                              IconButton(
+                                icon: Icon(Icons.clear, color: Colors.red[400], size: 18),
+                                tooltip: 'Clear date filter',
+                                onPressed: () {
+                                  setState(() {
+                                    _selectedDate = null;
+                                  });
+                                },
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                          ],
                         ),
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -563,7 +602,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            DateFormat('MMMM yyyy').format(now),
+                            _selectedDate != null
+                              ? DateFormat('MMMM d, yyyy').format(_selectedDate!)
+                              : DateFormat('MMMM yyyy').format(now),
                             style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500, fontSize: 12),
                           ),
                         ),
@@ -964,7 +1005,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       ],
                     ),
                     SizedBox(height: 16),
-                    _buildTransactionsList(),
+                    _buildTransactionsList(), // <-- this will use the filter
                   ],
                 ),
               ),
@@ -1069,7 +1110,20 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       valueListenable: Hive.box('transactions').listenable(),
       builder: (context, box, _) {
         final today = DateTime.now();
-        final items = box.values.toList().reversed.take(5).toList();
+        List items = box.values.toList().reversed.toList();
+
+        // Filter by selected date if set
+        if (_selectedDate != null) {
+          items = items.where((item) {
+            if (item['date'] == null) return false;
+            final txDate = DateTime.parse(item['date']);
+            return txDate.year == _selectedDate!.year &&
+                   txDate.month == _selectedDate!.month &&
+                   txDate.day == _selectedDate!.day;
+          }).toList();
+        } else {
+          items = items.take(5).toList();
+        }
 
         if (items.isEmpty) {
           return Container(
@@ -1079,24 +1133,28 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
                 SizedBox(height: 16),
                 Text(
-                  'No transactions yet',
+                  'No transactions${_selectedDate != null ? ' for this date' : ' yet'}',
                   style: TextStyle(color: Colors.grey[500], fontSize: 16),
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Your transactions will appear here',
+                  _selectedDate != null
+                    ? 'Pick another date'
+                    : 'Your transactions will appear here',
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
               ],
             ),
           );
         }
-        
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Today, ${DateFormat('MMMM d').format(today)}',
+              _selectedDate != null
+                ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
+                : 'Today, ${DateFormat('MMMM d').format(today)}',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
