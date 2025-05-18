@@ -251,6 +251,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 'serviceFee': 0.0,
                 'totalAmount': amount,
                 'date': DateTime.now().toIso8601String(),
+                'wallet': 'load',
               });
               setState(() {
                 _loadWalletBalance += amount;
@@ -270,6 +271,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               return;
             }
           }
+          else if (_transactionType == 'gcash_topup') {
+            box.add({
+              'type': _transactionType,
+              'amount': amount,
+              'serviceFee': 0.0,
+              'totalAmount': amount,
+              'date': DateTime.now().toIso8601String(),
+            });
+            setState(() {
+              _gcashBalance += amount;
+              _monthlyIncome -= amount; // Using income for GCash topup
+            });
+          }
           
           _amountController.clear();
           _saveBalances();
@@ -281,7 +295,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Transaction saved! Fee: ₱${fee.toStringAsFixed(2)}'),
+              content: Text(_transactionType == 'gcash_topup' 
+                ? 'GCash topup completed successfully!' 
+                : 'Transaction saved! Fee: ₱${fee.toStringAsFixed(2)}'),
               backgroundColor: Colors.green[700],
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -701,6 +717,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                       DropdownMenuItem(value: 'gcash_out', child: _buildDropdownItem(Icons.arrow_downward, 'GCash Cash Out')),
                                       DropdownMenuItem(value: 'load', child: _buildDropdownItem(Icons.phone_android, 'Load Sold')),
                                       DropdownMenuItem(value: 'topup', child: _buildDropdownItem(Icons.add_circle_outline, 'Load Wallet Top-up')),
+                                      DropdownMenuItem(value: 'gcash_topup', child: _buildDropdownItem(Icons.account_balance_wallet, 'GCash Top-up')),
                                     ],
                                     onChanged: (val) {
                                       setState(() {
@@ -757,6 +774,52 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                                           child: Text(
                                             'Service Fee: ₱${_calculateGcashFee(double.tryParse(_amountController.text) ?? 0.0).toStringAsFixed(2)}',
                                             style: TextStyle(color: Colors.amber[800], fontSize: 14),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                if (_transactionType == 'gcash_topup') ...[
+                                  SizedBox(height: 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.blue[200]!),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.info_outline, size: 16, color: Colors.blue[800]),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'This will add to your GCash balance using your income.',
+                                            style: TextStyle(color: Colors.blue[800], fontSize: 14),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                if (_transactionType == 'topup') ...[
+                                  SizedBox(height: 8),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange[50],
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.orange[200]!),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.info_outline, size: 16, color: Colors.orange[800]),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'This will deduct from your GCash balance to add to your Load Wallet.',
+                                            style: TextStyle(color: Colors.orange[800], fontSize: 14),
                                           ),
                                         ),
                                       ],
@@ -1086,7 +1149,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         typeLabel = 'GCash Top-up';
         typeIcon = Icons.account_balance_wallet;
         iconColor = Colors.blue[700]!;
-        isIncome = false;
+        isIncome = true; // For display purposes, it's adding to GCash balance
         break;
       default:
         typeLabel = item['type'];
@@ -1099,9 +1162,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       margin: EdgeInsets.only(bottom: 12),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: item['type'] == 'gcash_topup' ? Colors.blue[50] : Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: item['type'] == 'gcash_topup' ? Colors.blue[200]! : Colors.grey[200]!),
       ),
       child: Row(
         children: [
@@ -1131,6 +1194,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   formattedTime,
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
+                if (item['type'] == 'gcash_topup') ...[
+                  SizedBox(height: 4),
+                  Text(
+                    'From Income',
+                    style: TextStyle(color: Colors.blue[700], fontSize: 12, fontWeight: FontWeight.w500),
+                  ),
+                ],
               ],
             ),
           ),

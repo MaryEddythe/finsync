@@ -10,21 +10,23 @@ class ReportPage extends StatefulWidget {
 
 class _ReportPageState extends State<ReportPage> {
   String _selectedPeriod = 'Month';
-  final List<String> _periods = ['Week', 'Month', 'Quarter', 'Year', 'All'];
-  
+  final List<String> _periods = ['Today', 'Week', 'Month', 'Quarter', 'All'];
+
   // Summary metrics
   double _gcashIncome = 0.0;
   double _gcashExpense = 0.0;
-  double _gcashTopup = 0.0;
+  double _gcashTopup = 0.0; // GCash topup (adding to GCash balance)
   double _loadIncome = 0.0;
   double _loadCommission = 0.0;
-  double _loadTopup = 0.0;
-  
+  double _loadTopup = 0.0; // Load wallet topup
+  double _gcashLoadTopup = 0.0; // Load topup from GCash balance
+
   // Chart data
   List<FlSpot> _gcashSpots = [];
   List<FlSpot> _loadSpots = [];
+  List<FlSpot> _topupSpots = [];
   double _maxY = 1000; // Default max value for charts
-  
+
   bool _isLoading = true;
 
   @override
@@ -37,7 +39,7 @@ class _ReportPageState extends State<ReportPage> {
     setState(() {
       _isLoading = true;
     });
-    
+
     // Reset metrics
     _gcashIncome = 0.0;
     _gcashExpense = 0.0;
@@ -45,78 +47,95 @@ class _ReportPageState extends State<ReportPage> {
     _loadIncome = 0.0;
     _loadCommission = 0.0;
     _loadTopup = 0.0;
+    _gcashLoadTopup = 0.0;
     _gcashSpots = [];
     _loadSpots = [];
-    
+    _topupSpots = [];
+
     final transactionsBox = Hive.box('transactions');
     final allTransactions = transactionsBox.values.toList();
-    
+
     // Filter transactions by selected period
-    final filteredTransactions = _filterTransactionsByPeriod(allTransactions, _selectedPeriod);
-    
+    final filteredTransactions =
+        _filterTransactionsByPeriod(allTransactions, _selectedPeriod);
+
     // Process transactions
     for (var tx in filteredTransactions) {
       final txType = tx['type'] as String? ?? '';
-      final date = DateTime.parse(tx['date'] as String? ?? DateTime.now().toIso8601String());
-      
+      final date = DateTime.parse(
+          tx['date'] as String? ?? DateTime.now().toIso8601String());
+
       if (txType == 'gcash_in') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         _gcashExpense += amount;
         _addToSpots(_gcashSpots, date, amount, false);
-        
       } else if (txType == 'gcash_out') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         _gcashIncome += amount;
         _addToSpots(_gcashSpots, date, amount, true);
-        
       } else if (txType == 'load') {
         final customerPays = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
         final profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
         _loadIncome += customerPays;
         _loadCommission += profit;
         _addToSpots(_loadSpots, date, customerPays, true);
-        
       } else if (txType == 'topup') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        if (tx['wallet'] == 'gcash') {
+        final wallet = tx['wallet'] as String? ?? 'load';
+
+        if (wallet == 'gcash') {
+          // GCash topup (adding to GCash balance)
           _gcashTopup += amount;
+          _addToSpots(_topupSpots, date, amount, true);
         } else {
+          // Load wallet topup
           _loadTopup += amount;
+          _gcashLoadTopup += amount; // This is deducted from GCash balance
+          _addToSpots(_topupSpots, date, amount, false);
         }
-        _addToSpots(tx['wallet'] == 'gcash' ? _gcashSpots : _loadSpots, date, amount, false);
+      } else if (txType == 'gcash_topup') {
+        // Specific GCash topup transaction
+        final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+        _gcashTopup += amount;
+        _addToSpots(_topupSpots, date, amount, true);
       }
     }
-    
+
     // Calculate max Y for charts
     _calculateMaxY();
-    
+
     setState(() {
       _isLoading = false;
     });
   }
-  
-  void _addToSpots(List<FlSpot> spots, DateTime date, double amount, bool isIncome) {
+
+  void _addToSpots(
+      List<FlSpot> spots, DateTime date, double amount, bool isIncome) {
     // Convert date to x-axis value
     final x = _getXValue(date);
-    
+
     // Find if there's already a spot for this date
     final existingIndex = spots.indexWhere((spot) => spot.x == x);
-    
+
     if (existingIndex >= 0) {
       // Update existing spot
       final existingSpot = spots[existingIndex];
-      spots[existingIndex] = FlSpot(existingSpot.x, existingSpot.y + (isIncome ? amount : -amount));
+      spots[existingIndex] = FlSpot(
+          existingSpot.x, existingSpot.y + (isIncome ? amount : -amount));
     } else {
       // Add new spot
       spots.add(FlSpot(x, isIncome ? amount : -amount));
     }
-    
+
     // Sort spots by x
     spots.sort((a, b) => a.x.compareTo(b.x));
   }
-  
+
   double _getXValue(DateTime date) {
-    if (_selectedPeriod == 'Week') {
+    if (_selectedPeriod == 'Today') {
+      // Hour of day (0-23)
+      return date.hour.toDouble();
+    } else if (_selectedPeriod == 'Week') {
       // Day of week (0-6)
       return date.weekday.toDouble() - 1;
     } else if (_selectedPeriod == 'Month') {
@@ -126,56 +145,68 @@ class _ReportPageState extends State<ReportPage> {
       // Month within quarter (0-2)
       final quarterStartMonth = ((date.month - 1) ~/ 3) * 3 + 1;
       return (date.month - quarterStartMonth).toDouble();
-    } else if (_selectedPeriod == 'Year') {
-      // Month of year (0-11)
-      return date.month.toDouble() - 1;
     } else {
       // All time - use days since epoch
       return date.millisecondsSinceEpoch / (24 * 60 * 60 * 1000);
     }
   }
-  
+
   void _calculateMaxY() {
-    // Find max absolute value in both spot lists
+    // Find max absolute value in all spot lists
     double maxGcash = 0;
     double maxLoad = 0;
-    
+    double maxTopup = 0;
+
     for (var spot in _gcashSpots) {
       if (spot.y.abs() > maxGcash) {
         maxGcash = spot.y.abs();
       }
     }
-    
+
     for (var spot in _loadSpots) {
       if (spot.y.abs() > maxLoad) {
         maxLoad = spot.y.abs();
       }
     }
-    
-    _maxY = [maxGcash, maxLoad, 1000].reduce((a, b) => a > b ? a : b) * 1.2; // Add 20% margin
+
+    for (var spot in _topupSpots) {
+      if (spot.y.abs() > maxTopup) {
+        maxTopup = spot.y.abs();
+      }
+    }
+
+    _maxY =
+        [maxGcash, maxLoad, maxTopup, 1000].reduce((a, b) => a > b ? a : b) *
+            1.2; // Add 20% margin
   }
-  
-  List<dynamic> _filterTransactionsByPeriod(List<dynamic> transactions, String period) {
+
+  List<dynamic> _filterTransactionsByPeriod(
+      List<dynamic> transactions, String period) {
     final now = DateTime.now();
-    
+
     return transactions.where((tx) {
       if (tx['date'] == null) return false;
-      
+
       final txDate = DateTime.parse(tx['date'] as String? ?? '');
-      
-      if (period == 'Week') {
+
+      if (period == 'Today') {
+        // Only transactions from today
+        return txDate.year == now.year &&
+            txDate.month == now.month &&
+            txDate.day == now.day;
+      } else if (period == 'Week') {
         final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        return txDate.isAfter(weekStart.subtract(Duration(days: 1))) && 
-               txDate.isBefore(weekStart.add(Duration(days: 7)));
+        return txDate.isAfter(weekStart.subtract(Duration(days: 1))) &&
+            txDate.isBefore(weekStart.add(Duration(days: 7)));
       } else if (period == 'Month') {
         return txDate.year == now.year && txDate.month == now.month;
       } else if (period == 'Quarter') {
-        final quarterStart = DateTime(now.year, ((now.month - 1) ~/ 3) * 3 + 1, 1);
-        final quarterEnd = DateTime(quarterStart.year, quarterStart.month + 3, 0);
-        return txDate.isAfter(quarterStart.subtract(Duration(days: 1))) && 
-               txDate.isBefore(quarterEnd.add(Duration(days: 1)));
-      } else if (period == 'Year') {
-        return txDate.year == now.year;
+        final quarterStart =
+            DateTime(now.year, ((now.month - 1) ~/ 3) * 3 + 1, 1);
+        final quarterEnd =
+            DateTime(quarterStart.year, quarterStart.month + 3, 0);
+        return txDate.isAfter(quarterStart.subtract(Duration(days: 1))) &&
+            txDate.isBefore(quarterEnd.add(Duration(days: 1)));
       } else {
         return true; // All time
       }
@@ -211,6 +242,8 @@ class _ReportPageState extends State<ReportPage> {
                             _buildGCashSection(),
                             SizedBox(height: 24),
                             _buildLoadSection(),
+                            SizedBox(height: 24),
+                            _buildTopupSection(),
                           ],
                         ),
                       ),
@@ -256,7 +289,7 @@ class _ReportPageState extends State<ReportPage> {
         itemBuilder: (context, index) {
           final period = _periods[index];
           final isSelected = period == _selectedPeriod;
-          
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -268,7 +301,8 @@ class _ReportPageState extends State<ReportPage> {
               margin: EdgeInsets.only(right: 8),
               padding: EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                color:
+                    isSelected ? Colors.white : Colors.white.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Center(
@@ -276,7 +310,8 @@ class _ReportPageState extends State<ReportPage> {
                   period,
                   style: TextStyle(
                     color: isSelected ? Colors.green.shade800 : Colors.white,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ),
@@ -291,7 +326,7 @@ class _ReportPageState extends State<ReportPage> {
     final gcashProfit = _gcashIncome - _gcashExpense;
     final loadProfit = _loadIncome - _loadTopup;
     final totalProfit = gcashProfit + loadProfit + _loadCommission;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -382,7 +417,8 @@ class _ReportPageState extends State<ReportPage> {
                             ),
                           ),
                           SizedBox(height: 8),
-                          _buildProfitBreakdownBar(gcashProfit, _loadCommission, loadProfit),
+                          _buildProfitBreakdownBar(
+                              gcashProfit, _loadCommission, loadProfit),
                         ],
                       ),
                     ),
@@ -396,9 +432,10 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  Widget _buildProfitBreakdownBar(double gcashProfit, double loadCommission, double loadProfit) {
+  Widget _buildProfitBreakdownBar(
+      double gcashProfit, double loadCommission, double loadProfit) {
     final total = gcashProfit.abs() + loadCommission.abs() + loadProfit.abs();
-    
+
     if (total == 0) {
       return Text(
         'No profit data available for this period',
@@ -408,11 +445,11 @@ class _ReportPageState extends State<ReportPage> {
         ),
       );
     }
-    
+
     final gcashWidth = (gcashProfit / total * 100).abs();
     final commissionWidth = (loadCommission / total * 100).abs();
     final loadWidth = (loadProfit / total * 100).abs();
-    
+
     return Column(
       children: [
         Container(
@@ -423,9 +460,12 @@ class _ReportPageState extends State<ReportPage> {
           child: Row(
             children: [
               Container(
-                width: gcashWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width:
+                    gcashWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
                 decoration: BoxDecoration(
-                  color: gcashProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                  color: gcashProfit >= 0
+                      ? Colors.green.shade700
+                      : Colors.red.shade700,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(10),
                     bottomLeft: Radius.circular(10),
@@ -433,13 +473,19 @@ class _ReportPageState extends State<ReportPage> {
                 ),
               ),
               Container(
-                width: commissionWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width: commissionWidth *
+                    0.01 *
+                    MediaQuery.of(context).size.width *
+                    0.6,
                 color: Colors.purple.shade700,
               ),
               Container(
-                width: loadWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width:
+                    loadWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
                 decoration: BoxDecoration(
-                  color: loadProfit >= 0 ? Colors.blue.shade700 : Colors.orange.shade700,
+                  color: loadProfit >= 0
+                      ? Colors.blue.shade700
+                      : Colors.orange.shade700,
                   borderRadius: BorderRadius.only(
                     topRight: Radius.circular(10),
                     bottomRight: Radius.circular(10),
@@ -452,11 +498,16 @@ class _ReportPageState extends State<ReportPage> {
         SizedBox(height: 8),
         Row(
           children: [
-            _buildLegendItem('GCash', gcashProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700),
+            _buildLegendItem('GCash',
+                gcashProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700),
             SizedBox(width: 16),
             _buildLegendItem('Commission', Colors.purple.shade700),
             SizedBox(width: 16),
-            _buildLegendItem('Load', loadProfit >= 0 ? Colors.blue.shade700 : Colors.orange.shade700),
+            _buildLegendItem(
+                'Load',
+                loadProfit >= 0
+                    ? Colors.blue.shade700
+                    : Colors.orange.shade700),
           ],
         ),
       ],
@@ -488,7 +539,7 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildGCashSection() {
     final gcashProfit = _gcashIncome - _gcashExpense;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -535,10 +586,10 @@ class _ReportPageState extends State<ReportPage> {
                 children: [
                   Expanded(
                     child: _buildMetricCard(
-                      'Top-up Amount',
+                      'GCash Topup',
                       _gcashTopup,
                       Icons.add_circle_outline,
-                      Colors.orange.shade700,
+                      Colors.blue.shade700,
                     ),
                   ),
                   SizedBox(width: 16),
@@ -547,7 +598,9 @@ class _ReportPageState extends State<ReportPage> {
                       'Net Profit',
                       gcashProfit,
                       Icons.account_balance_wallet,
-                      gcashProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                      gcashProfit >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -563,8 +616,9 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildLoadSection() {
     final loadProfit = _loadIncome - _loadTopup + _loadCommission;
-    final profitMargin = _loadIncome > 0 ? (_loadCommission / _loadIncome * 100) : 0;
-    
+    final profitMargin =
+        _loadIncome > 0 ? (_loadCommission / _loadIncome * 100) : 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -611,7 +665,7 @@ class _ReportPageState extends State<ReportPage> {
                 children: [
                   Expanded(
                     child: _buildMetricCard(
-                      'Top-up Amount',
+                      'Load Topup',
                       _loadTopup,
                       Icons.add_circle_outline,
                       Colors.orange.shade700,
@@ -623,7 +677,9 @@ class _ReportPageState extends State<ReportPage> {
                       'Net Profit',
                       loadProfit,
                       Icons.account_balance_wallet,
-                      loadProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                      loadProfit >= 0
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 ],
@@ -686,7 +742,199 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  Widget _buildSummaryCard(String title, double amount, IconData icon, Color color) {
+  Widget _buildTopupSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Topup Analysis'),
+        SizedBox(height: 16),
+        Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      'GCash Topup',
+                      _gcashTopup,
+                      Icons.account_balance_wallet,
+                      Colors.blue.shade700,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Load Wallet Topup',
+                      _loadTopup,
+                      Icons.phone_android,
+                      Colors.orange.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Load Topup from GCash',
+                      _gcashLoadTopup,
+                      Icons.swap_horiz,
+                      Colors.purple.shade700,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: _buildMetricCard(
+                      'Total Topup',
+                      _gcashTopup + _loadTopup,
+                      Icons.add_circle,
+                      Colors.teal.shade700,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 24,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Topup Distribution',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          _buildTopupDistributionBar(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              _buildTopupChart(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopupDistributionBar() {
+    final total = _gcashTopup + _loadTopup;
+
+    if (total == 0) {
+      return Text(
+        'No topup data available for this period',
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey.shade600,
+        ),
+      );
+    }
+
+    final gcashWidth = (_gcashTopup / total * 100);
+    final loadWidth = (_loadTopup / total * 100);
+
+    return Column(
+      children: [
+        Container(
+          height: 20,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width:
+                    gcashWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade700,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(10),
+                    bottomLeft: Radius.circular(10),
+                  ),
+                ),
+              ),
+              Container(
+                width:
+                    loadWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade700,
+                  borderRadius: BorderRadius.only(
+                    topRight: Radius.circular(10),
+                    bottomRight: Radius.circular(10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8),
+        Row(
+          children: [
+            _buildLegendItem('GCash Topup', Colors.blue.shade700),
+            SizedBox(width: 16),
+            _buildLegendItem('Load Wallet Topup', Colors.orange.shade700),
+          ],
+        ),
+        SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${gcashWidth.toStringAsFixed(1)}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue.shade700,
+              ),
+            ),
+            Text(
+              '${loadWidth.toStringAsFixed(1)}%',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade700,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(
+      String title, double amount, IconData icon, Color color) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -723,7 +971,8 @@ class _ReportPageState extends State<ReportPage> {
     );
   }
 
-  Widget _buildMetricCard(String title, double amount, IconData icon, Color color) {
+  Widget _buildMetricCard(
+      String title, double amount, IconData icon, Color color) {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -776,7 +1025,10 @@ class _ReportPageState extends State<ReportPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
-                        if (value == 0) return Text('0', style: TextStyle(color: Colors.grey.shade600, fontSize: 10));
+                        if (value == 0)
+                          return Text('0',
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 10));
                         if (value % (_maxY / 3).round() != 0) return Text('');
                         return Text(
                           '₱${value.toInt()}',
@@ -794,8 +1046,25 @@ class _ReportPageState extends State<ReportPage> {
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         String text = '';
-                        if (_selectedPeriod == 'Week') {
-                          final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        if (_selectedPeriod == 'Today') {
+                          // Show hours for today
+                          if (value % 3 == 0) {
+                            final hour = value.toInt();
+                            final amPm = hour >= 12 ? 'PM' : 'AM';
+                            final hour12 =
+                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                            text = '$hour12$amPm';
+                          }
+                        } else if (_selectedPeriod == 'Week') {
+                          final weekdays = [
+                            'Mon',
+                            'Tue',
+                            'Wed',
+                            'Thu',
+                            'Fri',
+                            'Sat',
+                            'Sun'
+                          ];
                           if (value >= 0 && value < weekdays.length) {
                             text = weekdays[value.toInt()];
                           }
@@ -803,11 +1072,10 @@ class _ReportPageState extends State<ReportPage> {
                           if (value % 5 == 0) {
                             text = '${value.toInt() + 1}';
                           }
-                        } else if (_selectedPeriod == 'Year') {
-                          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                          if (value >= 0 && value < months.length) {
-                            text = months[value.toInt()];
-                          }
+                        } else if (_selectedPeriod == 'Quarter') {
+                          if (value.toInt() == 0) text = 'Month 1';
+                          if (value.toInt() == 1) text = 'Month 2';
+                          if (value.toInt() == 2) text = 'Month 3';
                         } else {
                           if (value % 5 == 0) {
                             text = '${value.toInt()}';
@@ -824,8 +1092,10 @@ class _ReportPageState extends State<ReportPage> {
                       reservedSize: 30,
                     ),
                   ),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 borderData: FlBorderData(show: false),
                 minX: _getMinX(_gcashSpots),
@@ -855,7 +1125,9 @@ class _ReportPageState extends State<ReportPage> {
                         return LineTooltipItem(
                           '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
                           TextStyle(
-                            color: isIncome ? Colors.green.shade300 : Colors.red.shade300,
+                            color: isIncome
+                                ? Colors.green.shade300
+                                : Colors.red.shade300,
                             fontWeight: FontWeight.bold,
                           ),
                         );
@@ -881,7 +1153,10 @@ class _ReportPageState extends State<ReportPage> {
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
-                        if (value == 0) return Text('0', style: TextStyle(color: Colors.grey.shade600, fontSize: 10));
+                        if (value == 0)
+                          return Text('0',
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 10));
                         if (value % (_maxY / 3).round() != 0) return Text('');
                         return Text(
                           '₱${value.toInt()}',
@@ -899,8 +1174,25 @@ class _ReportPageState extends State<ReportPage> {
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         String text = '';
-                        if (_selectedPeriod == 'Week') {
-                          final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        if (_selectedPeriod == 'Today') {
+                          // Show hours for today
+                          if (value % 3 == 0) {
+                            final hour = value.toInt();
+                            final amPm = hour >= 12 ? 'PM' : 'AM';
+                            final hour12 =
+                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                            text = '$hour12$amPm';
+                          }
+                        } else if (_selectedPeriod == 'Week') {
+                          final weekdays = [
+                            'Mon',
+                            'Tue',
+                            'Wed',
+                            'Thu',
+                            'Fri',
+                            'Sat',
+                            'Sun'
+                          ];
                           if (value >= 0 && value < weekdays.length) {
                             text = weekdays[value.toInt()];
                           }
@@ -908,11 +1200,10 @@ class _ReportPageState extends State<ReportPage> {
                           if (value % 5 == 0) {
                             text = '${value.toInt() + 1}';
                           }
-                        } else if (_selectedPeriod == 'Year') {
-                          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                          if (value >= 0 && value < months.length) {
-                            text = months[value.toInt()];
-                          }
+                        } else if (_selectedPeriod == 'Quarter') {
+                          if (value.toInt() == 0) text = 'Month 1';
+                          if (value.toInt() == 1) text = 'Month 2';
+                          if (value.toInt() == 2) text = 'Month 3';
                         } else {
                           if (value % 5 == 0) {
                             text = '${value.toInt()}';
@@ -929,8 +1220,10 @@ class _ReportPageState extends State<ReportPage> {
                       reservedSize: 30,
                     ),
                   ),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 ),
                 borderData: FlBorderData(show: false),
                 minX: _getMinX(_loadSpots),
@@ -960,7 +1253,137 @@ class _ReportPageState extends State<ReportPage> {
                         return LineTooltipItem(
                           '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
                           TextStyle(
-                            color: isIncome ? Colors.purple.shade300 : Colors.orange.shade300,
+                            color: isIncome
+                                ? Colors.purple.shade300
+                                : Colors.orange.shade300,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      }).toList();
+                    },
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  Widget _buildTopupChart() {
+    return Container(
+      height: 200,
+      child: _topupSpots.isEmpty
+          ? Center(child: Text('No topup data available for selected period'))
+          : LineChart(
+              LineChartData(
+                gridData: FlGridData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0)
+                          return Text('0',
+                              style: TextStyle(
+                                  color: Colors.grey.shade600, fontSize: 10));
+                        if (value % (_maxY / 3).round() != 0) return Text('');
+                        return Text(
+                          '₱${value.toInt()}',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 10,
+                          ),
+                        );
+                      },
+                      reservedSize: 40,
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        String text = '';
+                        if (_selectedPeriod == 'Today') {
+                          // Show hours for today
+                          if (value % 3 == 0) {
+                            final hour = value.toInt();
+                            final amPm = hour >= 12 ? 'PM' : 'AM';
+                            final hour12 =
+                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+                            text = '$hour12$amPm';
+                          }
+                        } else if (_selectedPeriod == 'Week') {
+                          final weekdays = [
+                            'Mon',
+                            'Tue',
+                            'Wed',
+                            'Thu',
+                            'Fri',
+                            'Sat',
+                            'Sun'
+                          ];
+                          if (value >= 0 && value < weekdays.length) {
+                            text = weekdays[value.toInt()];
+                          }
+                        } else if (_selectedPeriod == 'Month') {
+                          if (value % 5 == 0) {
+                            text = '${value.toInt() + 1}';
+                          }
+                        } else if (_selectedPeriod == 'Quarter') {
+                          if (value.toInt() == 0) text = 'Month 1';
+                          if (value.toInt() == 1) text = 'Month 2';
+                          if (value.toInt() == 2) text = 'Month 3';
+                        } else {
+                          if (value % 5 == 0) {
+                            text = '${value.toInt()}';
+                          }
+                        }
+                        return Text(
+                          text,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 10,
+                          ),
+                        );
+                      },
+                      reservedSize: 30,
+                    ),
+                  ),
+                  rightTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: _getMinX(_topupSpots),
+                maxX: _getMaxX(_topupSpots),
+                minY: -_maxY,
+                maxY: _maxY,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: _topupSpots,
+                    isCurved: true,
+                    color: Colors.blue.shade700,
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Colors.blue.shade700.withOpacity(0.2),
+                    ),
+                  ),
+                ],
+                lineTouchData: LineTouchData(
+                  touchTooltipData: LineTouchTooltipData(
+                    tooltipBgColor: Colors.blueGrey.shade800,
+                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                      return touchedSpots.map((spot) {
+                        final isGCashTopup = spot.y >= 0;
+                        return LineTooltipItem(
+                          '${isGCashTopup ? "GCash Topup" : "Load Topup"}: ₱${spot.y.abs().toStringAsFixed(2)}',
+                          TextStyle(
+                            color: isGCashTopup
+                                ? Colors.blue.shade300
+                                : Colors.orange.shade300,
                             fontWeight: FontWeight.bold,
                           ),
                         );
@@ -979,7 +1402,19 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   double _getMaxX(List<FlSpot> spots) {
-    if (spots.isEmpty) return 6; // Default to a week
+    if (spots.isEmpty) {
+      if (_selectedPeriod == 'Today') {
+        return 23; // 24 hours (0-23)
+      } else if (_selectedPeriod == 'Week') {
+        return 6; // 7 days (0-6)
+      } else if (_selectedPeriod == 'Month') {
+        return 30; // 31 days (0-30)
+      } else if (_selectedPeriod == 'Quarter') {
+        return 2; // 3 months (0-2)
+      } else {
+        return 30; // Default
+      }
+    }
     return spots.map((spot) => spot.x).reduce((a, b) => a > b ? a : b);
   }
 
