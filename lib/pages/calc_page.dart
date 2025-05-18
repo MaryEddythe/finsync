@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class CalcPage extends StatefulWidget {
   @override
@@ -11,8 +12,6 @@ class _CalcPageState extends State<CalcPage> {
   double _serviceFee = 0.0;
   double _totalAmount = 0.0;
   bool _showFeeTable = false;
-  double _monthlyBalance = 1230.00;
-  double _todayAmount = 30.60;
   final String _userName = "User"; 
   final DateTime _lastUpdated = DateTime.now();
 
@@ -67,8 +66,30 @@ class _CalcPageState extends State<CalcPage> {
     setState(() {
       _serviceFee = fee;
       _totalAmount = amount + fee;
-      _todayAmount += amount;
     });
+  }
+
+  // Calculate today's service fee revenue
+  double _calculateTodayServiceFeeRevenue() {
+    final transactionsBox = Hive.box('transactions');
+    final today = DateTime.now();
+    double todayRevenue = 0.0;
+    
+    final transactions = transactionsBox.values.where((e) {
+      if (e['date'] == null) return false;
+      final date = DateTime.parse(e['date']);
+      return date.year == today.year && 
+             date.month == today.month && 
+             date.day == today.day;
+    });
+    
+    for (var transaction in transactions) {
+      if (transaction['serviceFee'] != null) {
+        todayRevenue += (transaction['serviceFee'] as num).toDouble();
+      }
+    }
+    
+    return todayRevenue;
   }
 
   @override
@@ -147,21 +168,28 @@ class _CalcPageState extends State<CalcPage> {
             ),
             SizedBox(height: 20),
 
-            // Balance Overview
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStatCard(
-                  title: 'Monthly Balance',
-                  value: '₱${_monthlyBalance.toStringAsFixed(2)}',
-                  icon: Icons.calendar_today,
-                ),
-                _buildStatCard(
-                  title: 'Today',
-                  value: '₱${_todayAmount.toStringAsFixed(2)}',
-                  icon: Icons.today,
-                ),
-              ],
+            ValueListenableBuilder(
+              valueListenable: Hive.box('balances').listenable(),
+              builder: (context, balanceBox, _) {
+                final gcashBalance = balanceBox.get('gcash', defaultValue: 0.0);
+                final todayServiceFeeRevenue = _calculateTodayServiceFeeRevenue();
+                
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatCard(
+                      title: 'GCash Balance',
+                      value: '₱${gcashBalance.toStringAsFixed(2)}',
+                      icon: Icons.account_balance_wallet,
+                    ),
+                    _buildStatCard(
+                      title: 'Today\'s Revenue',
+                      value: '₱${todayServiceFeeRevenue.toStringAsFixed(2)}',
+                      icon: Icons.monetization_on,
+                    ),
+                  ],
+                );
+              },
             ),
             SizedBox(height: 20),
 
@@ -289,6 +317,7 @@ class _CalcPageState extends State<CalcPage> {
     return Expanded(
       child: Card(
         elevation: 4,
+        margin: EdgeInsets.symmetric(horizontal: 4),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: EdgeInsets.all(16),
