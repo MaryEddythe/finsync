@@ -31,6 +31,9 @@ class _WalletPageState extends State<WalletPage>
   late double screenHeight;
   late bool isTablet;
   late bool isLargeScreen;
+  late Orientation orientation;
+  late double textScaleFactor;
+  late EdgeInsets systemPadding;
 
   @override
   void initState() {
@@ -45,12 +48,24 @@ class _WalletPageState extends State<WalletPage>
     super.dispose();
   }
 
-  // Set up responsive values based on screen size
+  // Set up responsive values based on screen size and orientation
   void _setResponsiveValues(BuildContext context) {
-    screenWidth = MediaQuery.of(context).size.width;
-    screenHeight = MediaQuery.of(context).size.height;
-    isTablet = screenWidth > 600;
-    isLargeScreen = screenWidth > 900;
+    final mediaQuery = MediaQuery.of(context);
+    screenWidth = mediaQuery.size.width;
+    screenHeight = mediaQuery.size.height;
+    orientation = mediaQuery.orientation;
+    textScaleFactor = mediaQuery.textScaleFactor;
+    systemPadding = mediaQuery.padding;
+
+    // Adjust breakpoints based on orientation
+    if (orientation == Orientation.portrait) {
+      isTablet = screenWidth > 600;
+      isLargeScreen = screenWidth > 900;
+    } else {
+      // In landscape, use height as the primary factor
+      isTablet = screenHeight > 480;
+      isLargeScreen = screenHeight > 700;
+    }
   }
 
   Future<void> _loadWalletData() async {
@@ -150,7 +165,13 @@ class _WalletPageState extends State<WalletPage>
     _setResponsiveValues(context);
 
     return Scaffold(
-      body: _isLoading ? _buildLoadingView() : _buildMainView(),
+      body: _isLoading
+          ? _buildLoadingView()
+          : OrientationBuilder(
+              builder: (context, orientation) {
+                return _buildMainView(orientation);
+              },
+            ),
     );
   }
 
@@ -170,7 +191,7 @@ class _WalletPageState extends State<WalletPage>
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
             ),
-            SizedBox(height: 16),
+            SizedBox(height: _adaptiveSpacing(16)),
             Text(
               'Loading wallet data...',
               style: TextStyle(
@@ -185,57 +206,214 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  Widget _buildMainView() {
+  Widget _buildMainView(Orientation currentOrientation) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[100],
       ),
       child: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            // Use constraints to adapt layout based on available space
-            return NestedScrollView(
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverAppBar(
-                    expandedHeight: _adaptiveHeight(280),
-                    floating: false,
-                    pinned: true,
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: _buildHeader(),
-                    ),
-                  ),
-                  SliverPersistentHeader(
-                    delegate: _SliverAppBarDelegate(
-                      TabBar(
-                        controller: _tabController,
-                        labelColor: Color(0xFF6B48FF),
-                        unselectedLabelColor: Colors.grey[600],
-                        indicatorColor: Color(0xFF6B48FF),
-                        indicatorWeight: 3,
-                        tabs: [
-                          Tab(text: 'ANALYTICS'),
-                          Tab(text: 'TRANSACTIONS'),
-                        ],
-                      ),
-                    ),
-                    pinned: true,
-                  ),
-                ];
-              },
-              body: TabBarView(
+        child: currentOrientation == Orientation.portrait
+            ? _buildPortraitLayout()
+            : _buildLandscapeLayout(),
+      ),
+    );
+  }
+
+  Widget _buildPortraitLayout() {
+    return NestedScrollView(
+      headerSliverBuilder: (context, innerBoxIsScrolled) {
+        return [
+          SliverAppBar(
+            expandedHeight: _adaptiveHeight(280),
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: FlexibleSpaceBar(
+              background: _buildHeader(),
+            ),
+          ),
+          SliverPersistentHeader(
+            delegate: _SliverAppBarDelegate(
+              TabBar(
                 controller: _tabController,
-                children: [
-                  _buildAnalyticsTab(),
-                  _buildTransactionsTab(),
+                labelColor: Color(0xFF6B48FF),
+                unselectedLabelColor: Colors.grey[600],
+                indicatorColor: Color(0xFF6B48FF),
+                indicatorWeight: 3,
+                tabs: [
+                  Tab(text: 'ANALYTICS'),
+                  Tab(text: 'TRANSACTIONS'),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+            pinned: true,
+          ),
+        ];
+      },
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildAnalyticsTab(),
+          _buildTransactionsTab(),
+        ],
       ),
+    );
+  }
+
+  Widget _buildLandscapeLayout() {
+    return Row(
+      children: [
+        // Left panel with header
+        Container(
+          width: screenWidth * 0.35,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF6B48FF), Color(0xFF8A72FF)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+            borderRadius: BorderRadius.only(
+              topRight: Radius.circular(_adaptiveRadius(30)),
+              bottomRight: Radius.circular(_adaptiveRadius(30)),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(_adaptivePadding(16)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'My Wallet',
+                        style: TextStyle(
+                          fontSize: _adaptiveFontSize(24),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.refresh, color: Colors.white),
+                        onPressed: _loadWalletData,
+                        tooltip: 'Refresh Data',
+                        iconSize: _adaptiveIconSize(20),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: _adaptiveSpacing(20)),
+                  Text(
+                    'Total Balance',
+                    style: TextStyle(
+                      fontSize: _adaptiveFontSize(14),
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                  ),
+                  SizedBox(height: _adaptiveSpacing(8)),
+                  Text(
+                    '₱${(_gcashBalance + _loadWalletBalance).toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: _adaptiveFontSize(28),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: _adaptiveSpacing(20)),
+                  _buildBalanceCard(
+                    'GCash',
+                    _gcashBalance,
+                    Icons.account_balance_wallet,
+                  ),
+                  SizedBox(height: _adaptiveSpacing(12)),
+                  _buildBalanceCard(
+                    'Load Wallet',
+                    _loadWalletBalance,
+                    Icons.phone_android,
+                  ),
+                  Expanded(child: SizedBox()),
+                  // Navigation buttons for landscape mode
+                  _buildNavigationButtons(),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Right panel with content
+        Expanded(
+          child: Column(
+            children: [
+              // Tab bar for landscape mode
+              Container(
+                color: Colors.white,
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: Color(0xFF6B48FF),
+                  unselectedLabelColor: Colors.grey[600],
+                  indicatorColor: Color(0xFF6B48FF),
+                  indicatorWeight: 3,
+                  tabs: [
+                    Tab(text: 'ANALYTICS'),
+                    Tab(text: 'TRANSACTIONS'),
+                  ],
+                ),
+              ),
+              // Tab content
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildAnalyticsTab(),
+                    _buildTransactionsTab(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNavigationButtons() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildNavButton(Icons.home, 'Home'),
+        SizedBox(width: _adaptiveSpacing(16)),
+        _buildNavButton(Icons.history, 'History'),
+        SizedBox(width: _adaptiveSpacing(16)),
+        _buildNavButton(Icons.settings, 'Settings'),
+      ],
+    );
+  }
+
+  Widget _buildNavButton(IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: EdgeInsets.all(_adaptivePadding(10)),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
+          ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: _adaptiveIconSize(20),
+          ),
+        ),
+        SizedBox(height: _adaptiveSpacing(4)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: _adaptiveFontSize(12),
+          ),
+        ),
+      ],
     );
   }
 
@@ -296,7 +474,7 @@ class _WalletPageState extends State<WalletPage>
             SizedBox(height: _adaptiveSpacing(20)),
             // Use Flex for better responsiveness on different screen sizes
             Flex(
-              direction: isLargeScreen ? Axis.horizontal : Axis.horizontal,
+              direction: Axis.horizontal,
               children: [
                 Expanded(
                   child: _buildBalanceCard(
@@ -372,12 +550,15 @@ class _WalletPageState extends State<WalletPage>
     return LayoutBuilder(
       builder: (context, constraints) {
         // Use constraints to adapt layout based on available space
+        final availableWidth = constraints.maxWidth;
+        final isWideLayout = availableWidth > 600;
+
         return SingleChildScrollView(
           padding: EdgeInsets.all(_adaptivePadding(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSummaryCards(),
+              _buildSummaryCards(isWideLayout),
               SizedBox(height: _adaptiveSpacing(24)),
               _buildChartSection(),
               SizedBox(height: _adaptiveSpacing(24)),
@@ -389,7 +570,7 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  Widget _buildSummaryCards() {
+  Widget _buildSummaryCards(bool isWideLayout) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -402,34 +583,53 @@ class _WalletPageState extends State<WalletPage>
           ),
         ),
         SizedBox(height: _adaptiveSpacing(16)),
-        // Use Wrap for better responsiveness on different screen sizes
-        Wrap(
-          spacing: _adaptiveSpacing(16),
-          runSpacing: _adaptiveSpacing(16),
-          children: [
-            SizedBox(
-              width: isTablet
-                  ? (screenWidth - _adaptivePadding(48)) / 2
-                  : double.infinity,
-              child: _buildSummaryCard(
-                'Total Revenue',
-                _totalRevenue,
-                Icons.trending_up,
-                Color(0xFF6B48FF),
-              ),
-            ),
-            SizedBox(
-              width: isTablet
-                  ? (screenWidth - _adaptivePadding(48)) / 2
-                  : double.infinity,
-              child: _buildSummaryCard(
-                'Total Profit',
-                _totalProfit,
-                Icons.attach_money,
-                Color(0xFF4CAF50),
-              ),
-            ),
-          ],
+        isWideLayout
+            ? _buildWideLayoutSummaryCards()
+            : _buildNarrowLayoutSummaryCards(),
+      ],
+    );
+  }
+
+  Widget _buildWideLayoutSummaryCards() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildSummaryCard(
+            'Total Revenue',
+            _totalRevenue,
+            Icons.trending_up,
+            Color(0xFF6B48FF),
+          ),
+        ),
+        SizedBox(width: _adaptiveSpacing(16)),
+        Expanded(
+          child: _buildSummaryCard(
+            'Total Profit',
+            _totalProfit,
+            Icons.attach_money,
+            Color(0xFF4CAF50),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNarrowLayoutSummaryCards() {
+    return Column(
+      children: [
+        _buildSummaryCard(
+          'Total Revenue',
+          _totalRevenue,
+          Icons.trending_up,
+          Color(0xFF6B48FF),
+        ),
+        SizedBox(height: _adaptiveSpacing(16)),
+        _buildSummaryCard(
+          'Total Profit',
+          _totalProfit,
+          Icons.attach_money,
+          Color(0xFF4CAF50),
         ),
       ],
     );
@@ -648,6 +848,25 @@ class _WalletPageState extends State<WalletPage>
                         ),
                       ),
                     ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        tooltipBgColor: Colors.blueGrey.shade800,
+                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            return LineTooltipItem(
+                              '₱${spot.y.toStringAsFixed(2)}',
+                              TextStyle(
+                                color: spot.barIndex == 0
+                                    ? Colors.purple.shade100
+                                    : Colors.green.shade100,
+                                fontWeight: FontWeight.bold,
+                                fontSize: _adaptiveFontSize(12),
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -755,8 +974,34 @@ class _WalletPageState extends State<WalletPage>
       );
     }
 
-    return Column(
-      children: transactions.map((tx) => _buildTransactionItem(tx)).toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideLayout = constraints.maxWidth > 600;
+
+        if (isWideLayout) {
+          // Grid layout for wider screens
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: constraints.maxWidth > 900 ? 3 : 2,
+              childAspectRatio: 2.5,
+              crossAxisSpacing: _adaptiveSpacing(12),
+              mainAxisSpacing: _adaptiveSpacing(12),
+            ),
+            itemCount: transactions.length,
+            itemBuilder: (context, index) {
+              return _buildTransactionItem(transactions[index]);
+            },
+          );
+        } else {
+          // List layout for narrower screens
+          return Column(
+            children:
+                transactions.map((tx) => _buildTransactionItem(tx)).toList(),
+          );
+        }
+      },
     );
   }
 
@@ -884,12 +1129,35 @@ class _WalletPageState extends State<WalletPage>
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(_adaptivePadding(16)),
-      itemCount: filteredTransactions.length,
-      itemBuilder: (context, index) {
-        final tx = filteredTransactions[index];
-        return _buildTransactionItem(tx);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWideLayout = constraints.maxWidth > 600;
+
+        if (isWideLayout) {
+          // Grid layout for wider screens
+          return GridView.builder(
+            padding: EdgeInsets.all(_adaptivePadding(16)),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: constraints.maxWidth > 900 ? 3 : 2,
+              childAspectRatio: 2.5,
+              crossAxisSpacing: _adaptiveSpacing(12),
+              mainAxisSpacing: _adaptiveSpacing(12),
+            ),
+            itemCount: filteredTransactions.length,
+            itemBuilder: (context, index) {
+              return _buildTransactionItem(filteredTransactions[index]);
+            },
+          );
+        } else {
+          // List layout for narrower screens
+          return ListView.builder(
+            padding: EdgeInsets.all(_adaptivePadding(16)),
+            itemCount: filteredTransactions.length,
+            itemBuilder: (context, index) {
+              return _buildTransactionItem(filteredTransactions[index]);
+            },
+          );
+        }
       },
     );
   }
@@ -1091,6 +1359,203 @@ class _WalletPageState extends State<WalletPage>
       formattedTime = DateFormat('hh:mm a').format(txDate);
     }
 
+    // Determine if we should use a full-screen dialog or bottom sheet based on screen size
+    if (isLargeScreen) {
+      _showTransactionDetailsDialog(
+          transaction, title, icon, iconColor, formattedDate, formattedTime);
+    } else {
+      _showTransactionDetailsBottomSheet(
+          transaction, title, icon, iconColor, formattedDate, formattedTime);
+    }
+  }
+
+  void _showTransactionDetailsDialog(
+      dynamic transaction,
+      String title,
+      IconData icon,
+      Color iconColor,
+      String formattedDate,
+      String formattedTime) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(_adaptiveRadius(24)),
+        ),
+        child: Container(
+          width: screenWidth * 0.8,
+          padding: EdgeInsets.all(_adaptivePadding(24)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(_adaptivePadding(12)),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: iconColor,
+                      size: _adaptiveIconSize(28),
+                    ),
+                  ),
+                  SizedBox(width: _adaptiveSpacing(16)),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: _adaptiveFontSize(20),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      SizedBox(height: _adaptiveSpacing(4)),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: _adaptivePadding(8),
+                            vertical: _adaptivePadding(4)),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius:
+                              BorderRadius.circular(_adaptiveRadius(8)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: _adaptiveIconSize(12),
+                              color: Colors.green[700],
+                            ),
+                            SizedBox(width: _adaptiveSpacing(4)),
+                            Text(
+                              'Completed',
+                              style: TextStyle(
+                                fontSize: _adaptiveFontSize(10),
+                                color: Colors.green[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: _adaptiveSpacing(24)),
+              Container(
+                padding: EdgeInsets.all(_adaptivePadding(16)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
+                ),
+                child: Column(
+                  children: [
+                    _buildDetailItem(
+                        'Date', formattedDate, Icons.calendar_today_rounded),
+                    Divider(
+                        height: _adaptiveSpacing(24), color: Colors.grey[200]),
+                    _buildDetailItem(
+                        'Time', formattedTime, Icons.access_time_rounded),
+                    Divider(
+                        height: _adaptiveSpacing(24), color: Colors.grey[200]),
+                    _buildDetailItem('Transaction ID', '#${transaction.key}',
+                        Icons.tag_rounded),
+                  ],
+                ),
+              ),
+              SizedBox(height: _adaptiveSpacing(24)),
+              Text(
+                'Transaction Details',
+                style: TextStyle(
+                  fontSize: _adaptiveFontSize(18),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              SizedBox(height: _adaptiveSpacing(16)),
+              Container(
+                padding: EdgeInsets.all(_adaptivePadding(16)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
+                ),
+                child: Column(
+                  children: _buildTransactionDetailItems(transaction,
+                      type: transaction['type'] ?? ''),
+                ),
+              ),
+              SizedBox(height: _adaptiveSpacing(24)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon:
+                        Icon(Icons.share_rounded, size: _adaptiveIconSize(18)),
+                    label: Text(
+                      'Share',
+                      style: TextStyle(fontSize: _adaptiveFontSize(14)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      side: BorderSide(color: Colors.grey[300]!),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: _adaptivePadding(16),
+                          vertical: _adaptivePadding(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(_adaptiveRadius(12)),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    icon: Icon(Icons.delete_outline_rounded,
+                        size: _adaptiveIconSize(18)),
+                    label: Text(
+                      'Delete',
+                      style: TextStyle(fontSize: _adaptiveFontSize(14)),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[50],
+                      foregroundColor: Colors.red[700],
+                      padding: EdgeInsets.symmetric(
+                          horizontal: _adaptivePadding(16),
+                          vertical: _adaptivePadding(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(_adaptiveRadius(12)),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showTransactionDetailsBottomSheet(
+      dynamic transaction,
+      String title,
+      IconData icon,
+      Color iconColor,
+      String formattedDate,
+      String formattedTime) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1225,72 +1690,12 @@ class _WalletPageState extends State<WalletPage>
                             BorderRadius.circular(_adaptiveRadius(16)),
                       ),
                       child: Column(
-                        children: [
-                          if (type == 'load') ...[
-                            _buildDetailItem(
-                              'Customer Pays',
-                              '₱${transaction['customerPays'].toStringAsFixed(2)}',
-                              Icons.payments_rounded,
-                            ),
-                            Divider(
-                                height: _adaptiveSpacing(24),
-                                color: Colors.grey[200]),
-                            _buildDetailItem(
-                              'Wallet Deducted',
-                              '₱${transaction['deducted'].toStringAsFixed(2)}',
-                              Icons.remove_circle_outline_rounded,
-                            ),
-                            Divider(
-                                height: _adaptiveSpacing(24),
-                                color: Colors.grey[200]),
-                            _buildDetailItem(
-                              'Commission',
-                              '₱${transaction['commission'].toStringAsFixed(2)}',
-                              Icons.monetization_on_rounded,
-                            ),
-                            Divider(
-                                height: _adaptiveSpacing(24),
-                                color: Colors.grey[200]),
-                            _buildDetailItem(
-                              'Profit',
-                              '₱${transaction['profit'].toStringAsFixed(2)}',
-                              Icons.trending_up_rounded,
-                            ),
-                          ] else ...[
-                            _buildDetailItem(
-                              'Amount',
-                              '₱${transaction['amount'].toStringAsFixed(2)}',
-                              Icons.attach_money_rounded,
-                            ),
-                            if (transaction['serviceFee'] != null) ...[
-                              Divider(
-                                  height: _adaptiveSpacing(24),
-                                  color: Colors.grey[200]),
-                              _buildDetailItem(
-                                'Service Fee',
-                                '₱${transaction['serviceFee'].toStringAsFixed(2)}',
-                                Icons.receipt_long_rounded,
-                              ),
-                            ],
-                            if (transaction['totalAmount'] != null) ...[
-                              Divider(
-                                  height: _adaptiveSpacing(24),
-                                  color: Colors.grey[200]),
-                              _buildDetailItem(
-                                'Total Amount',
-                                '₱${transaction['totalAmount'].toStringAsFixed(2)}',
-                                Icons.account_balance_wallet_rounded,
-                              ),
-                            ],
-                          ],
-                        ],
+                        children: _buildTransactionDetailItems(transaction,
+                            type: transaction['type'] ?? ''),
                       ),
                     ),
                     SizedBox(height: _adaptiveSpacing(24)),
-                    // Use Wrap for better responsiveness on different screen sizes
-                    Wrap(
-                      spacing: _adaptiveSpacing(16),
-                      runSpacing: _adaptiveSpacing(16),
+                    Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
@@ -1315,6 +1720,7 @@ class _WalletPageState extends State<WalletPage>
                             ),
                           ),
                         ),
+                        SizedBox(width: _adaptiveSpacing(16)),
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () {
@@ -1349,6 +1755,68 @@ class _WalletPageState extends State<WalletPage>
         ),
       ),
     );
+  }
+
+  List<Widget> _buildTransactionDetailItems(dynamic transaction,
+      {required String type}) {
+    List<Widget> items = [];
+
+    if (type == 'load') {
+      items.add(_buildDetailItem(
+        'Customer Pays',
+        '₱${transaction['customerPays'].toStringAsFixed(2)}',
+        Icons.payments_rounded,
+      ));
+      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
+
+      items.add(_buildDetailItem(
+        'Wallet Deducted',
+        '₱${transaction['deducted'].toStringAsFixed(2)}',
+        Icons.remove_circle_outline_rounded,
+      ));
+      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
+
+      items.add(_buildDetailItem(
+        'Commission',
+        '₱${transaction['commission'].toStringAsFixed(2)}',
+        Icons.monetization_on_rounded,
+      ));
+      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
+
+      items.add(_buildDetailItem(
+        'Profit',
+        '₱${transaction['profit'].toStringAsFixed(2)}',
+        Icons.trending_up_rounded,
+      ));
+    } else {
+      items.add(_buildDetailItem(
+        'Amount',
+        '₱${transaction['amount'].toStringAsFixed(2)}',
+        Icons.attach_money_rounded,
+      ));
+
+      if (transaction['serviceFee'] != null) {
+        items.add(
+            Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
+        items.add(_buildDetailItem(
+          'Service Fee',
+          '₱${transaction['serviceFee'].toStringAsFixed(2)}',
+          Icons.receipt_long_rounded,
+        ));
+      }
+
+      if (transaction['totalAmount'] != null) {
+        items.add(
+            Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
+        items.add(_buildDetailItem(
+          'Total Amount',
+          '₱${transaction['totalAmount'].toStringAsFixed(2)}',
+          Icons.account_balance_wallet_rounded,
+        ));
+      }
+    }
+
+    return items;
   }
 
   Widget _buildDetailItem(String label, String value, IconData icon) {
@@ -1387,41 +1855,52 @@ class _WalletPageState extends State<WalletPage>
 
   // Responsive helpers
   double _adaptiveFontSize(double size) {
-    if (isLargeScreen) return size * 1.2;
-    if (isTablet) return size * 1.1;
-    return size;
+    // Scale font size based on device size and text scale factor
+    double baseSize = size;
+    if (isLargeScreen)
+      baseSize *= 1.2;
+    else if (isTablet) baseSize *= 1.1;
+
+    // Apply system text scale factor for accessibility
+    return baseSize * textScaleFactor;
   }
 
   double _adaptiveIconSize(double size) {
+    // Scale icons based on device size
     if (isLargeScreen) return size * 1.2;
     if (isTablet) return size * 1.1;
     return size;
   }
 
   double _adaptivePadding(double padding) {
+    // Scale padding based on device size
     if (isLargeScreen) return padding * 1.5;
     if (isTablet) return padding * 1.2;
     return padding;
   }
 
   double _adaptiveSpacing(double spacing) {
+    // Scale spacing between elements based on device size
     if (isLargeScreen) return spacing * 1.5;
     if (isTablet) return spacing * 1.2;
     return spacing;
   }
 
   double _adaptiveRadius(double radius) {
+    // Scale border radius based on device size
     if (isLargeScreen) return radius * 1.3;
     if (isTablet) return radius * 1.1;
     return radius;
   }
 
   double _adaptiveHeight(double height) {
+    // Scale height based on screen height
     double scaleFactor = screenHeight / 800; // Base height
     return height * scaleFactor;
   }
 
   double _adaptiveSize(double size) {
+    // General purpose size scaling
     if (isLargeScreen) return size * 1.3;
     if (isTablet) return size * 1.1;
     return size;
@@ -1443,10 +1922,10 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => tabBar.preferredSize.height;
+  double get minExtent => tabBar.preferredSize.height;
 
   @override
-  double get minExtent => tabBar.preferredSize.height;
+  double get maxExtent => tabBar.preferredSize.height;
 
   @override
   bool shouldRebuild(covariant _SliverAppBarDelegate oldDelegate) {

@@ -21,6 +21,14 @@ class _ReportPageState extends State<ReportPage> {
   double _loadTopup = 0.0; // Load wallet topup
   double _gcashLoadTopup = 0.0; // Load topup from GCash balance
 
+  // Revenue and profit tracking
+  double _totalRevenue = 0.0;
+  double _totalProfit = 0.0;
+
+  // Commission rates
+  double _mayaCommissionRate = 0.03;
+  double _fixedMarkup = 3.0;
+
   // Chart data
   List<FlSpot> _gcashSpots = [];
   List<FlSpot> _loadSpots = [];
@@ -29,10 +37,24 @@ class _ReportPageState extends State<ReportPage> {
 
   bool _isLoading = true;
 
+  // For responsive design
+  late double screenWidth;
+  late double screenHeight;
+  late bool isTablet;
+  late bool isLargeScreen;
+
   @override
   void initState() {
     super.initState();
     _loadReportData();
+  }
+
+  // Set up responsive values based on screen size
+  void _setResponsiveValues(BuildContext context) {
+    screenWidth = MediaQuery.of(context).size.width;
+    screenHeight = MediaQuery.of(context).size.height;
+    isTablet = screenWidth > 600;
+    isLargeScreen = screenWidth > 900;
   }
 
   Future<void> _loadReportData() async {
@@ -48,6 +70,8 @@ class _ReportPageState extends State<ReportPage> {
     _loadCommission = 0.0;
     _loadTopup = 0.0;
     _gcashLoadTopup = 0.0;
+    _totalRevenue = 0.0;
+    _totalProfit = 0.0;
     _gcashSpots = [];
     _loadSpots = [];
     _topupSpots = [];
@@ -67,17 +91,43 @@ class _ReportPageState extends State<ReportPage> {
 
       if (txType == 'gcash_in') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+        final serviceFee = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
+
         _gcashExpense += amount;
+
+        // Revenue for GCash is the service fee
+        _totalRevenue += serviceFee;
+        _totalProfit += serviceFee;
+
         _addToSpots(_gcashSpots, date, amount, false);
       } else if (txType == 'gcash_out') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+        final serviceFee = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
+
         _gcashIncome += amount;
+
+        // Revenue for GCash is the service fee
+        _totalRevenue += serviceFee;
+        _totalProfit += serviceFee;
+
         _addToSpots(_gcashSpots, date, amount, true);
       } else if (txType == 'load') {
         final customerPays = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
-        final profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
+        final deducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
+
+        // Calculate Maya commission
+        final mayaCommission = deducted * _mayaCommissionRate;
+
+        // Calculate profit as Maya commission + fixed markup
+        final profit = _fixedMarkup + mayaCommission;
+
         _loadIncome += customerPays;
         _loadCommission += profit;
+
+        // Revenue for Load is Maya commission + fixed markup
+        _totalRevenue += profit;
+        _totalProfit += profit;
+
         _addToSpots(_loadSpots, date, customerPays, true);
       } else if (txType == 'topup') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
@@ -215,6 +265,8 @@ class _ReportPageState extends State<ReportPage> {
 
   @override
   Widget build(BuildContext context) {
+    _setResponsiveValues(context);
+
     return Scaffold(
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.green[700]))
@@ -233,16 +285,16 @@ class _ReportPageState extends State<ReportPage> {
                     _buildPeriodSelector(),
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: EdgeInsets.all(16),
+                        padding: EdgeInsets.all(_adaptivePadding(16)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildSummarySection(),
-                            SizedBox(height: 24),
+                            SizedBox(height: _adaptiveSpacing(24)),
                             _buildGCashSection(),
-                            SizedBox(height: 24),
+                            SizedBox(height: _adaptiveSpacing(24)),
                             _buildLoadSection(),
-                            SizedBox(height: 24),
+                            SizedBox(height: _adaptiveSpacing(24)),
                             _buildTopupSection(),
                           ],
                         ),
@@ -257,14 +309,14 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.all(_adaptivePadding(16)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             'Financial Reports',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: _adaptiveFontSize(24),
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -273,6 +325,7 @@ class _ReportPageState extends State<ReportPage> {
             icon: Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadReportData,
             tooltip: 'Refresh Reports',
+            iconSize: _adaptiveIconSize(24),
           ),
         ],
       ),
@@ -281,8 +334,8 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildPeriodSelector() {
     return Container(
-      height: 40,
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      height: _adaptiveHeight(40),
+      margin: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: _periods.length,
@@ -298,12 +351,12 @@ class _ReportPageState extends State<ReportPage> {
               _loadReportData();
             },
             child: Container(
-              margin: EdgeInsets.only(right: 8),
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              margin: EdgeInsets.only(right: _adaptiveSpacing(8)),
+              padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
               decoration: BoxDecoration(
                 color:
                     isSelected ? Colors.white : Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
               ),
               child: Center(
                 child: Text(
@@ -312,6 +365,7 @@ class _ReportPageState extends State<ReportPage> {
                     color: isSelected ? Colors.green.shade800 : Colors.white,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
+                    fontSize: _adaptiveFontSize(14),
                   ),
                 ),
               ),
@@ -325,18 +379,18 @@ class _ReportPageState extends State<ReportPage> {
   Widget _buildSummarySection() {
     final gcashProfit = _gcashIncome - _gcashExpense;
     final loadProfit = _loadIncome - _loadTopup;
-    final totalProfit = gcashProfit + loadProfit + _loadCommission;
+    final totalProfit = _totalProfit;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Overall Summary'),
-        SizedBox(height: 16),
+        SizedBox(height: _adaptiveSpacing(16)),
         Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(_adaptivePadding(20)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -347,64 +401,52 @@ class _ReportPageState extends State<ReportPage> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryCard(
-                      'Total Revenue',
-                      _gcashIncome + _loadIncome,
-                      Icons.account_balance_wallet,
-                      Colors.green.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSummaryCard(
-                      'Total Expenses',
-                      _gcashExpense + _gcashTopup + _loadTopup,
-                      Icons.money_off,
-                      Colors.red.shade700,
-                    ),
-                  ),
-                ],
+              _buildResponsiveRow(
+                first: _buildSummaryCard(
+                  'Total Revenue',
+                  _totalRevenue,
+                  Icons.account_balance_wallet,
+                  Colors.green.shade700,
+                ),
+                second: _buildSummaryCard(
+                  'Total Expenses',
+                  _gcashExpense + _gcashTopup + _loadTopup,
+                  Icons.money_off,
+                  Colors.red.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSummaryCard(
-                      'Load Commission',
-                      _loadCommission,
-                      Icons.phone_android,
-                      Colors.purple.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSummaryCard(
-                      'Net Profit',
-                      totalProfit,
-                      Icons.trending_up,
-                      Colors.blue.shade700,
-                    ),
-                  ),
-                ],
+              SizedBox(height: _adaptiveSpacing(16)),
+              _buildResponsiveRow(
+                first: _buildSummaryCard(
+                  'Load Commission',
+                  _loadCommission,
+                  Icons.phone_android,
+                  Colors.purple.shade700,
+                ),
+                second: _buildSummaryCard(
+                  'Net Profit',
+                  totalProfit,
+                  Icons.trending_up,
+                  Colors.blue.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               Container(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(_adaptivePadding(16)),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.insights,
                       color: Colors.blue.shade700,
-                      size: 24,
+                      size: _adaptiveIconSize(24),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: _adaptiveSpacing(12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -414,9 +456,10 @@ class _ReportPageState extends State<ReportPage> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey.shade800,
+                              fontSize: _adaptiveFontSize(14),
                             ),
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: _adaptiveSpacing(8)),
                           _buildProfitBreakdownBar(
                               gcashProfit, _loadCommission, loadProfit),
                         ],
@@ -440,7 +483,7 @@ class _ReportPageState extends State<ReportPage> {
       return Text(
         'No profit data available for this period',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: _adaptiveFontSize(12),
           color: Colors.grey.shade600,
         ),
       );
@@ -450,59 +493,59 @@ class _ReportPageState extends State<ReportPage> {
     final commissionWidth = (loadCommission / total * 100).abs();
     final loadWidth = (loadProfit / total * 100).abs();
 
+    // Calculate responsive widths based on available space
+    final availableWidth =
+        screenWidth - _adaptivePadding(80); // Accounting for padding
+    final barWidth = isTablet ? availableWidth * 0.7 : availableWidth * 0.6;
+
     return Column(
       children: [
         Container(
-          height: 20,
+          height: _adaptiveHeight(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
           ),
           child: Row(
             children: [
               Container(
-                width:
-                    gcashWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width: gcashWidth * 0.01 * barWidth,
                 decoration: BoxDecoration(
                   color: gcashProfit >= 0
                       ? Colors.green.shade700
                       : Colors.red.shade700,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
+                    topLeft: Radius.circular(_adaptiveRadius(10)),
+                    bottomLeft: Radius.circular(_adaptiveRadius(10)),
                   ),
                 ),
               ),
               Container(
-                width: commissionWidth *
-                    0.01 *
-                    MediaQuery.of(context).size.width *
-                    0.6,
+                width: commissionWidth * 0.01 * barWidth,
                 color: Colors.purple.shade700,
               ),
               Container(
-                width:
-                    loadWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width: loadWidth * 0.01 * barWidth,
                 decoration: BoxDecoration(
                   color: loadProfit >= 0
                       ? Colors.blue.shade700
                       : Colors.orange.shade700,
                   borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
+                    topRight: Radius.circular(_adaptiveRadius(10)),
+                    bottomRight: Radius.circular(_adaptiveRadius(10)),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: 8),
-        Row(
+        SizedBox(height: _adaptiveSpacing(8)),
+        Wrap(
+          spacing: _adaptiveSpacing(16),
+          runSpacing: _adaptiveSpacing(8),
           children: [
             _buildLegendItem('GCash',
                 gcashProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700),
-            SizedBox(width: 16),
             _buildLegendItem('Commission', Colors.purple.shade700),
-            SizedBox(width: 16),
             _buildLegendItem(
                 'Load',
                 loadProfit >= 0
@@ -516,20 +559,21 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildLegendItem(String label, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 12,
-          height: 12,
+          width: _adaptiveSize(12),
+          height: _adaptiveSize(12),
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
           ),
         ),
-        SizedBox(width: 4),
+        SizedBox(width: _adaptiveSpacing(4)),
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: _adaptiveFontSize(10),
             color: Colors.grey.shade700,
           ),
         ),
@@ -544,12 +588,12 @@ class _ReportPageState extends State<ReportPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('GCash Performance'),
-        SizedBox(height: 16),
+        SizedBox(height: _adaptiveSpacing(16)),
         Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(_adaptivePadding(20)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -560,52 +604,40 @@ class _ReportPageState extends State<ReportPage> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Cash Out (Revenue)',
-                      _gcashIncome,
-                      Icons.arrow_downward,
-                      Colors.green.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Cash In (Expense)',
-                      _gcashExpense,
-                      Icons.arrow_upward,
-                      Colors.red.shade700,
-                    ),
-                  ),
-                ],
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'Cash Out (Revenue)',
+                  _gcashIncome,
+                  Icons.arrow_downward,
+                  Colors.green.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Cash In (Expense)',
+                  _gcashExpense,
+                  Icons.arrow_upward,
+                  Colors.red.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'GCash Topup',
-                      _gcashTopup,
-                      Icons.add_circle_outline,
-                      Colors.blue.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Net Profit',
-                      gcashProfit,
-                      Icons.account_balance_wallet,
-                      gcashProfit >= 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
-                  ),
-                ],
+              SizedBox(height: _adaptiveSpacing(16)),
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'GCash Topup',
+                  _gcashTopup,
+                  Icons.add_circle_outline,
+                  Colors.blue.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Net Profit',
+                  gcashProfit,
+                  Icons.account_balance_wallet,
+                  gcashProfit >= 0
+                      ? Colors.green.shade700
+                      : Colors.red.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               _buildGCashChart(),
             ],
           ),
@@ -623,12 +655,12 @@ class _ReportPageState extends State<ReportPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Load Wallet Performance'),
-        SizedBox(height: 16),
+        SizedBox(height: _adaptiveSpacing(16)),
         Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(_adaptivePadding(20)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -639,66 +671,52 @@ class _ReportPageState extends State<ReportPage> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Sales Revenue',
-                      _loadIncome,
-                      Icons.shopping_cart,
-                      Colors.green.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Commission',
-                      _loadCommission,
-                      Icons.monetization_on,
-                      Colors.purple.shade700,
-                    ),
-                  ),
-                ],
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'Sales Revenue',
+                  _loadIncome,
+                  Icons.shopping_cart,
+                  Colors.green.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Commission',
+                  _loadCommission,
+                  Icons.monetization_on,
+                  Colors.purple.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Load Topup',
-                      _loadTopup,
-                      Icons.add_circle_outline,
-                      Colors.orange.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Net Profit',
-                      loadProfit,
-                      Icons.account_balance_wallet,
-                      loadProfit >= 0
-                          ? Colors.green.shade700
-                          : Colors.red.shade700,
-                    ),
-                  ),
-                ],
+              SizedBox(height: _adaptiveSpacing(16)),
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'Load Topup',
+                  _loadTopup,
+                  Icons.add_circle_outline,
+                  Colors.orange.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Net Profit',
+                  loadProfit,
+                  Icons.account_balance_wallet,
+                  loadProfit >= 0 ? Colors.green.shade700 : Colors.red.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               Container(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(_adaptivePadding(16)),
                 decoration: BoxDecoration(
                   color: Colors.purple.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.analytics,
                       color: Colors.purple.shade700,
-                      size: 24,
+                      size: _adaptiveIconSize(24),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: _adaptiveSpacing(12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,22 +726,23 @@ class _ReportPageState extends State<ReportPage> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey.shade800,
+                              fontSize: _adaptiveFontSize(14),
                             ),
                           ),
-                          SizedBox(height: 4),
+                          SizedBox(height: _adaptiveSpacing(4)),
                           Text(
                             '${profitMargin.toStringAsFixed(2)}% of sales',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: _adaptiveFontSize(18),
                               fontWeight: FontWeight.bold,
                               color: Colors.purple.shade700,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: _adaptiveSpacing(8)),
                           Text(
                             'For every ₱100 in load sales, you earn ₱${profitMargin.toStringAsFixed(2)} in commission',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: _adaptiveFontSize(12),
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -733,7 +752,7 @@ class _ReportPageState extends State<ReportPage> {
                   ],
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               _buildLoadChart(),
             ],
           ),
@@ -747,12 +766,12 @@ class _ReportPageState extends State<ReportPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle('Topup Analysis'),
-        SizedBox(height: 16),
+        SizedBox(height: _adaptiveSpacing(16)),
         Container(
-          padding: EdgeInsets.all(20),
+          padding: EdgeInsets.all(_adaptivePadding(20)),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(16)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
@@ -763,64 +782,52 @@ class _ReportPageState extends State<ReportPage> {
           ),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'GCash Topup',
-                      _gcashTopup,
-                      Icons.account_balance_wallet,
-                      Colors.blue.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Load Wallet Topup',
-                      _loadTopup,
-                      Icons.phone_android,
-                      Colors.orange.shade700,
-                    ),
-                  ),
-                ],
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'GCash Topup',
+                  _gcashTopup,
+                  Icons.account_balance_wallet,
+                  Colors.blue.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Load Wallet Topup',
+                  _loadTopup,
+                  Icons.phone_android,
+                  Colors.orange.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Load Topup from GCash',
-                      _gcashLoadTopup,
-                      Icons.swap_horiz,
-                      Colors.purple.shade700,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricCard(
-                      'Total Topup',
-                      _gcashTopup + _loadTopup,
-                      Icons.add_circle,
-                      Colors.teal.shade700,
-                    ),
-                  ),
-                ],
+              SizedBox(height: _adaptiveSpacing(16)),
+              _buildResponsiveRow(
+                first: _buildMetricCard(
+                  'Load Topup from GCash',
+                  _gcashLoadTopup,
+                  Icons.swap_horiz,
+                  Colors.purple.shade700,
+                ),
+                second: _buildMetricCard(
+                  'Total Topup',
+                  _gcashTopup + _loadTopup,
+                  Icons.add_circle,
+                  Colors.teal.shade700,
+                ),
+                spacing: _adaptiveSpacing(16),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               Container(
-                padding: EdgeInsets.all(16),
+                padding: EdgeInsets.all(_adaptivePadding(16)),
                 decoration: BoxDecoration(
                   color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
                       color: Colors.blue.shade700,
-                      size: 24,
+                      size: _adaptiveIconSize(24),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: _adaptiveSpacing(12)),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -830,9 +837,10 @@ class _ReportPageState extends State<ReportPage> {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.grey.shade800,
+                              fontSize: _adaptiveFontSize(14),
                             ),
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: _adaptiveSpacing(8)),
                           _buildTopupDistributionBar(),
                         ],
                       ),
@@ -840,7 +848,7 @@ class _ReportPageState extends State<ReportPage> {
                   ],
                 ),
               ),
-              SizedBox(height: 20),
+              SizedBox(height: _adaptiveSpacing(20)),
               _buildTopupChart(),
             ],
           ),
@@ -856,7 +864,7 @@ class _ReportPageState extends State<ReportPage> {
       return Text(
         'No topup data available for this period',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: _adaptiveFontSize(12),
           color: Colors.grey.shade600,
         ),
       );
@@ -865,56 +873,61 @@ class _ReportPageState extends State<ReportPage> {
     final gcashWidth = (_gcashTopup / total * 100);
     final loadWidth = (_loadTopup / total * 100);
 
+    // Calculate responsive widths based on available space
+    final availableWidth =
+        screenWidth - _adaptivePadding(80); // Accounting for padding
+    final barWidth = isTablet ? availableWidth * 0.7 : availableWidth * 0.6;
+
     return Column(
       children: [
         Container(
-          height: 20,
+          height: _adaptiveHeight(20),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
           ),
           child: Row(
             children: [
               Container(
-                width:
-                    gcashWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width: gcashWidth * 0.01 * barWidth,
                 decoration: BoxDecoration(
                   color: Colors.blue.shade700,
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(10),
-                    bottomLeft: Radius.circular(10),
+                    topLeft: Radius.circular(_adaptiveRadius(10)),
+                    bottomLeft: Radius.circular(_adaptiveRadius(10)),
                   ),
                 ),
               ),
               Container(
-                width:
-                    loadWidth * 0.01 * MediaQuery.of(context).size.width * 0.6,
+                width: loadWidth * 0.01 * barWidth,
                 decoration: BoxDecoration(
                   color: Colors.orange.shade700,
                   borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(10),
-                    bottomRight: Radius.circular(10),
+                    topRight: Radius.circular(_adaptiveRadius(10)),
+                    bottomRight: Radius.circular(_adaptiveRadius(10)),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(height: 8),
-        Row(
+        SizedBox(height: _adaptiveSpacing(8)),
+        Wrap(
+          spacing: _adaptiveSpacing(16),
+          runSpacing: _adaptiveSpacing(8),
+          alignment: WrapAlignment.spaceBetween,
           children: [
             _buildLegendItem('GCash Topup', Colors.blue.shade700),
-            SizedBox(width: 16),
             _buildLegendItem('Load Wallet Topup', Colors.orange.shade700),
           ],
         ),
-        SizedBox(height: 8),
+        SizedBox(height: _adaptiveSpacing(8)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               '${gcashWidth.toStringAsFixed(1)}%',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: _adaptiveFontSize(12),
                 fontWeight: FontWeight.bold,
                 color: Colors.blue.shade700,
               ),
@@ -922,7 +935,7 @@ class _ReportPageState extends State<ReportPage> {
             Text(
               '${loadWidth.toStringAsFixed(1)}%',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: _adaptiveFontSize(12),
                 fontWeight: FontWeight.bold,
                 color: Colors.orange.shade700,
               ),
@@ -936,32 +949,35 @@ class _ReportPageState extends State<ReportPage> {
   Widget _buildSummaryCard(
       String title, double amount, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(_adaptivePadding(16)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
+              Icon(icon, color: color, size: _adaptiveIconSize(20)),
+              SizedBox(width: _adaptiveSpacing(8)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: _adaptiveFontSize(14),
+                    color: Colors.grey.shade700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          SizedBox(height: _adaptiveSpacing(12)),
           Text(
             '₱${amount.toStringAsFixed(2)}',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: _adaptiveFontSize(20),
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -974,23 +990,23 @@ class _ReportPageState extends State<ReportPage> {
   Widget _buildMetricCard(
       String title, double amount, IconData icon, Color color) {
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(_adaptivePadding(16)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 20),
-              SizedBox(width: 8),
+              Icon(icon, color: color, size: _adaptiveIconSize(20)),
+              SizedBox(width: _adaptiveSpacing(8)),
               Expanded(
                 child: Text(
                   title,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: _adaptiveFontSize(14),
                     color: Colors.grey.shade700,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -998,11 +1014,11 @@ class _ReportPageState extends State<ReportPage> {
               ),
             ],
           ),
-          SizedBox(height: 12),
+          SizedBox(height: _adaptiveSpacing(12)),
           Text(
             '₱${amount.toStringAsFixed(2)}',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: _adaptiveFontSize(18),
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -1014,384 +1030,423 @@ class _ReportPageState extends State<ReportPage> {
 
   Widget _buildGCashChart() {
     return Container(
-      height: 200,
+      height: _adaptiveHeight(200),
       child: _gcashSpots.isEmpty
-          ? Center(child: Text('No GCash data available for selected period'))
-          : LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0)
-                          return Text('0',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 10));
-                        if (value % (_maxY / 3).round() != 0) return Text('');
-                        return Text(
-                          '₱${value.toInt()}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        String text = '';
-                        if (_selectedPeriod == 'Today') {
-                          // Show hours for today
-                          if (value % 3 == 0) {
-                            final hour = value.toInt();
-                            final amPm = hour >= 12 ? 'PM' : 'AM';
-                            final hour12 =
-                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                            text = '$hour12$amPm';
-                          }
-                        } else if (_selectedPeriod == 'Week') {
-                          final weekdays = [
-                            'Mon',
-                            'Tue',
-                            'Wed',
-                            'Thu',
-                            'Fri',
-                            'Sat',
-                            'Sun'
-                          ];
-                          if (value >= 0 && value < weekdays.length) {
-                            text = weekdays[value.toInt()];
-                          }
-                        } else if (_selectedPeriod == 'Month') {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt() + 1}';
-                          }
-                        } else if (_selectedPeriod == 'Quarter') {
-                          if (value.toInt() == 0) text = 'Month 1';
-                          if (value.toInt() == 1) text = 'Month 2';
-                          if (value.toInt() == 2) text = 'Month 3';
-                        } else {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt()}';
-                          }
-                        }
-                        return Text(
-                          text,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 30,
-                    ),
-                  ),
-                  rightTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: _getMinX(_gcashSpots),
-                maxX: _getMaxX(_gcashSpots),
-                minY: -_maxY,
-                maxY: _maxY,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _gcashSpots,
-                    isCurved: true,
-                    color: Colors.green.shade700,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.green.shade700.withOpacity(0.2),
-                    ),
-                  ),
-                ],
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor: Colors.blueGrey.shade800,
-                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final isIncome = spot.y >= 0;
-                        return LineTooltipItem(
-                          '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
-                          TextStyle(
-                            color: isIncome
-                                ? Colors.green.shade300
-                                : Colors.red.shade300,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
+          ? Center(
+              child: Text(
+                'No GCash data available for selected period',
+                style: TextStyle(fontSize: _adaptiveFontSize(14)),
               ),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return LineChart(
+                  LineChartData(
+                    gridData: FlGridData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value == 0)
+                              return Text('0',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: _adaptiveFontSize(10)));
+                            if (value % (_maxY / 3).round() != 0)
+                              return Text('');
+                            return Text(
+                              '₱${value.toInt()}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 40,
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            String text = '';
+                            if (_selectedPeriod == 'Today') {
+                              // Show hours for today
+                              if (value % 3 == 0) {
+                                final hour = value.toInt();
+                                final amPm = hour >= 12 ? 'PM' : 'AM';
+                                final hour12 = hour == 0
+                                    ? 12
+                                    : (hour > 12 ? hour - 12 : hour);
+                                text = '$hour12$amPm';
+                              }
+                            } else if (_selectedPeriod == 'Week') {
+                              final weekdays = [
+                                'Mon',
+                                'Tue',
+                                'Wed',
+                                'Thu',
+                                'Fri',
+                                'Sat',
+                                'Sun'
+                              ];
+                              if (value >= 0 && value < weekdays.length) {
+                                text = weekdays[value.toInt()];
+                              }
+                            } else if (_selectedPeriod == 'Month') {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt() + 1}';
+                              }
+                            } else if (_selectedPeriod == 'Quarter') {
+                              if (value.toInt() == 0) text = 'Month 1';
+                              if (value.toInt() == 1) text = 'Month 2';
+                              if (value.toInt() == 2) text = 'Month 3';
+                            } else {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt()}';
+                              }
+                            }
+                            return Text(
+                              text,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 30,
+                        ),
+                      ),
+                      rightTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    minX: _getMinX(_gcashSpots),
+                    maxX: _getMaxX(_gcashSpots),
+                    minY: -_maxY,
+                    maxY: _maxY,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: _gcashSpots,
+                        isCurved: true,
+                        color: Colors.green.shade700,
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: Colors.green.shade700.withOpacity(0.2),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        tooltipBgColor: Colors.blueGrey.shade800,
+                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            final isIncome = spot.y >= 0;
+                            return LineTooltipItem(
+                              '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
+                              TextStyle(
+                                color: isIncome
+                                    ? Colors.green.shade300
+                                    : Colors.red.shade300,
+                                fontWeight: FontWeight.bold,
+                                fontSize: _adaptiveFontSize(12),
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
     );
   }
 
   Widget _buildLoadChart() {
     return Container(
-      height: 200,
+      height: _adaptiveHeight(200),
       child: _loadSpots.isEmpty
-          ? Center(child: Text('No Load data available for selected period'))
-          : LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0)
-                          return Text('0',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 10));
-                        if (value % (_maxY / 3).round() != 0) return Text('');
-                        return Text(
-                          '₱${value.toInt()}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        String text = '';
-                        if (_selectedPeriod == 'Today') {
-                          // Show hours for today
-                          if (value % 3 == 0) {
-                            final hour = value.toInt();
-                            final amPm = hour >= 12 ? 'PM' : 'AM';
-                            final hour12 =
-                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                            text = '$hour12$amPm';
-                          }
-                        } else if (_selectedPeriod == 'Week') {
-                          final weekdays = [
-                            'Mon',
-                            'Tue',
-                            'Wed',
-                            'Thu',
-                            'Fri',
-                            'Sat',
-                            'Sun'
-                          ];
-                          if (value >= 0 && value < weekdays.length) {
-                            text = weekdays[value.toInt()];
-                          }
-                        } else if (_selectedPeriod == 'Month') {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt() + 1}';
-                          }
-                        } else if (_selectedPeriod == 'Quarter') {
-                          if (value.toInt() == 0) text = 'Month 1';
-                          if (value.toInt() == 1) text = 'Month 2';
-                          if (value.toInt() == 2) text = 'Month 3';
-                        } else {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt()}';
-                          }
-                        }
-                        return Text(
-                          text,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 30,
-                    ),
-                  ),
-                  rightTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: _getMinX(_loadSpots),
-                maxX: _getMaxX(_loadSpots),
-                minY: -_maxY,
-                maxY: _maxY,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _loadSpots,
-                    isCurved: true,
-                    color: Colors.purple.shade700,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.purple.shade700.withOpacity(0.2),
-                    ),
-                  ),
-                ],
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor: Colors.blueGrey.shade800,
-                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final isIncome = spot.y >= 0;
-                        return LineTooltipItem(
-                          '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
-                          TextStyle(
-                            color: isIncome
-                                ? Colors.purple.shade300
-                                : Colors.orange.shade300,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
+          ? Center(
+              child: Text(
+                'No Load data available for selected period',
+                style: TextStyle(fontSize: _adaptiveFontSize(14)),
               ),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return LineChart(
+                  LineChartData(
+                    gridData: FlGridData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value == 0)
+                              return Text('0',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: _adaptiveFontSize(10)));
+                            if (value % (_maxY / 3).round() != 0)
+                              return Text('');
+                            return Text(
+                              '₱${value.toInt()}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 40,
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            String text = '';
+                            if (_selectedPeriod == 'Today') {
+                              // Show hours for today
+                              if (value % 3 == 0) {
+                                final hour = value.toInt();
+                                final amPm = hour >= 12 ? 'PM' : 'AM';
+                                final hour12 = hour == 0
+                                    ? 12
+                                    : (hour > 12 ? hour - 12 : hour);
+                                text = '$hour12$amPm';
+                              }
+                            } else if (_selectedPeriod == 'Week') {
+                              final weekdays = [
+                                'Mon',
+                                'Tue',
+                                'Wed',
+                                'Thu',
+                                'Fri',
+                                'Sat',
+                                'Sun'
+                              ];
+                              if (value >= 0 && value < weekdays.length) {
+                                text = weekdays[value.toInt()];
+                              }
+                            } else if (_selectedPeriod == 'Month') {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt() + 1}';
+                              }
+                            } else if (_selectedPeriod == 'Quarter') {
+                              if (value.toInt() == 0) text = 'Month 1';
+                              if (value.toInt() == 1) text = 'Month 2';
+                              if (value.toInt() == 2) text = 'Month 3';
+                            } else {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt()}';
+                              }
+                            }
+                            return Text(
+                              text,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 30,
+                        ),
+                      ),
+                      rightTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    minX: _getMinX(_loadSpots),
+                    maxX: _getMaxX(_loadSpots),
+                    minY: -_maxY,
+                    maxY: _maxY,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: _loadSpots,
+                        isCurved: true,
+                        color: Colors.purple.shade700,
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: Colors.purple.shade700.withOpacity(0.2),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        tooltipBgColor: Colors.blueGrey.shade800,
+                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            final isIncome = spot.y >= 0;
+                            return LineTooltipItem(
+                              '${isIncome ? "Income" : "Expense"}: ₱${spot.y.abs().toStringAsFixed(2)}',
+                              TextStyle(
+                                color: isIncome
+                                    ? Colors.purple.shade300
+                                    : Colors.orange.shade300,
+                                fontWeight: FontWeight.bold,
+                                fontSize: _adaptiveFontSize(12),
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
     );
   }
 
   Widget _buildTopupChart() {
     return Container(
-      height: 200,
+      height: _adaptiveHeight(200),
       child: _topupSpots.isEmpty
-          ? Center(child: Text('No topup data available for selected period'))
-          : LineChart(
-              LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0)
-                          return Text('0',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 10));
-                        if (value % (_maxY / 3).round() != 0) return Text('');
-                        return Text(
-                          '₱${value.toInt()}',
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 40,
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        String text = '';
-                        if (_selectedPeriod == 'Today') {
-                          // Show hours for today
-                          if (value % 3 == 0) {
-                            final hour = value.toInt();
-                            final amPm = hour >= 12 ? 'PM' : 'AM';
-                            final hour12 =
-                                hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-                            text = '$hour12$amPm';
-                          }
-                        } else if (_selectedPeriod == 'Week') {
-                          final weekdays = [
-                            'Mon',
-                            'Tue',
-                            'Wed',
-                            'Thu',
-                            'Fri',
-                            'Sat',
-                            'Sun'
-                          ];
-                          if (value >= 0 && value < weekdays.length) {
-                            text = weekdays[value.toInt()];
-                          }
-                        } else if (_selectedPeriod == 'Month') {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt() + 1}';
-                          }
-                        } else if (_selectedPeriod == 'Quarter') {
-                          if (value.toInt() == 0) text = 'Month 1';
-                          if (value.toInt() == 1) text = 'Month 2';
-                          if (value.toInt() == 2) text = 'Month 3';
-                        } else {
-                          if (value % 5 == 0) {
-                            text = '${value.toInt()}';
-                          }
-                        }
-                        return Text(
-                          text,
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 30,
-                    ),
-                  ),
-                  rightTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:
-                      AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                minX: _getMinX(_topupSpots),
-                maxX: _getMaxX(_topupSpots),
-                minY: -_maxY,
-                maxY: _maxY,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: _topupSpots,
-                    isCurved: true,
-                    color: Colors.blue.shade700,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: Colors.blue.shade700.withOpacity(0.2),
-                    ),
-                  ),
-                ],
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    tooltipBgColor: Colors.blueGrey.shade800,
-                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                      return touchedSpots.map((spot) {
-                        final isGCashTopup = spot.y >= 0;
-                        return LineTooltipItem(
-                          '${isGCashTopup ? "GCash Topup" : "Load Topup"}: ₱${spot.y.abs().toStringAsFixed(2)}',
-                          TextStyle(
-                            color: isGCashTopup
-                                ? Colors.blue.shade300
-                                : Colors.orange.shade300,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ),
+          ? Center(
+              child: Text(
+                'No topup data available for selected period',
+                style: TextStyle(fontSize: _adaptiveFontSize(14)),
               ),
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                return LineChart(
+                  LineChartData(
+                    gridData: FlGridData(show: false),
+                    titlesData: FlTitlesData(
+                      leftTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            if (value == 0)
+                              return Text('0',
+                                  style: TextStyle(
+                                      color: Colors.grey.shade600,
+                                      fontSize: _adaptiveFontSize(10)));
+                            if (value % (_maxY / 3).round() != 0)
+                              return Text('');
+                            return Text(
+                              '₱${value.toInt()}',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 40,
+                        ),
+                      ),
+                      bottomTitles: AxisTitles(
+                        sideTitles: SideTitles(
+                          showTitles: true,
+                          getTitlesWidget: (value, meta) {
+                            String text = '';
+                            if (_selectedPeriod == 'Today') {
+                              // Show hours for today
+                              if (value % 3 == 0) {
+                                final hour = value.toInt();
+                                final amPm = hour >= 12 ? 'PM' : 'AM';
+                                final hour12 = hour == 0
+                                    ? 12
+                                    : (hour > 12 ? hour - 12 : hour);
+                                text = '$hour12$amPm';
+                              }
+                            } else if (_selectedPeriod == 'Week') {
+                              final weekdays = [
+                                'Mon',
+                                'Tue',
+                                'Wed',
+                                'Thu',
+                                'Fri',
+                                'Sat',
+                                'Sun'
+                              ];
+                              if (value >= 0 && value < weekdays.length) {
+                                text = weekdays[value.toInt()];
+                              }
+                            } else if (_selectedPeriod == 'Month') {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt() + 1}';
+                              }
+                            } else if (_selectedPeriod == 'Quarter') {
+                              if (value.toInt() == 0) text = 'Month 1';
+                              if (value.toInt() == 1) text = 'Month 2';
+                              if (value.toInt() == 2) text = 'Month 3';
+                            } else {
+                              if (value % 5 == 0) {
+                                text = '${value.toInt()}';
+                              }
+                            }
+                            return Text(
+                              text,
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: _adaptiveFontSize(10),
+                              ),
+                            );
+                          },
+                          reservedSize: 30,
+                        ),
+                      ),
+                      rightTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                      topTitles:
+                          AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    ),
+                    borderData: FlBorderData(show: false),
+                    minX: _getMinX(_topupSpots),
+                    maxX: _getMaxX(_topupSpots),
+                    minY: -_maxY,
+                    maxY: _maxY,
+                    lineBarsData: [
+                      LineChartBarData(
+                        spots: _topupSpots,
+                        isCurved: true,
+                        color: Colors.blue.shade700,
+                        barWidth: 3,
+                        isStrokeCapRound: true,
+                        dotData: FlDotData(show: false),
+                        belowBarData: BarAreaData(
+                          show: true,
+                          color: Colors.blue.shade700.withOpacity(0.2),
+                        ),
+                      ),
+                    ],
+                    lineTouchData: LineTouchData(
+                      touchTooltipData: LineTouchTooltipData(
+                        tooltipBgColor: Colors.blueGrey.shade800,
+                        getTooltipItems: (List<LineBarSpot> touchedSpots) {
+                          return touchedSpots.map((spot) {
+                            final isGCashTopup = spot.y >= 0;
+                            return LineTooltipItem(
+                              '${isGCashTopup ? "GCash Topup" : "Load Topup"}: ₱${spot.y.abs().toStringAsFixed(2)}',
+                              TextStyle(
+                                color: isGCashTopup
+                                    ? Colors.blue.shade300
+                                    : Colors.orange.shade300,
+                                fontWeight: FontWeight.bold,
+                                fontSize: _adaptiveFontSize(12),
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
     );
   }
@@ -1422,10 +1477,79 @@ class _ReportPageState extends State<ReportPage> {
     return Text(
       title,
       style: TextStyle(
-        fontSize: 20,
+        fontSize: _adaptiveFontSize(20),
         fontWeight: FontWeight.bold,
         color: Colors.white,
       ),
     );
+  }
+
+  // Helper method to create responsive rows that can switch to columns on small screens
+  Widget _buildResponsiveRow({
+    required Widget first,
+    required Widget second,
+    required double spacing,
+  }) {
+    if (isTablet) {
+      // On larger screens, use a row
+      return Row(
+        children: [
+          Expanded(child: first),
+          SizedBox(width: spacing),
+          Expanded(child: second),
+        ],
+      );
+    } else {
+      // On smaller screens, use a column
+      return Column(
+        children: [
+          first,
+          SizedBox(height: spacing),
+          second,
+        ],
+      );
+    }
+  }
+
+  // Responsive helpers
+  double _adaptiveFontSize(double size) {
+    if (isLargeScreen) return size * 1.2;
+    if (isTablet) return size * 1.1;
+    return size;
+  }
+
+  double _adaptiveIconSize(double size) {
+    if (isLargeScreen) return size * 1.2;
+    if (isTablet) return size * 1.1;
+    return size;
+  }
+
+  double _adaptivePadding(double padding) {
+    if (isLargeScreen) return padding * 1.5;
+    if (isTablet) return padding * 1.2;
+    return padding;
+  }
+
+  double _adaptiveSpacing(double spacing) {
+    if (isLargeScreen) return spacing * 1.5;
+    if (isTablet) return spacing * 1.2;
+    return spacing;
+  }
+
+  double _adaptiveRadius(double radius) {
+    if (isLargeScreen) return radius * 1.3;
+    if (isTablet) return radius * 1.1;
+    return radius;
+  }
+
+  double _adaptiveHeight(double height) {
+    double scaleFactor = screenHeight / 800; // Base height
+    return height * scaleFactor;
+  }
+
+  double _adaptiveSize(double size) {
+    if (isLargeScreen) return size * 1.3;
+    if (isTablet) return size * 1.1;
+    return size;
   }
 }
