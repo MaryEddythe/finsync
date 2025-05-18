@@ -1,0 +1,1 @@
+C:\SDK\Mobile Development\finsync\build\app\intermediates\cxx\RelWithDebInfo\2q5m5a4c\obj\x86_64

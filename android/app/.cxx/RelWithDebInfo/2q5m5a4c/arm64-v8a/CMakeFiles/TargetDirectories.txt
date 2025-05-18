@@ -1,0 +1,2 @@
+C:/SDK/Mobile Development/finsync/android/app/.cxx/RelWithDebInfo/2q5m5a4c/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/SDK/Mobile Development/finsync/android/app/.cxx/RelWithDebInfo/2q5m5a4c/arm64-v8a/CMakeFiles/rebuild_cache.dir
