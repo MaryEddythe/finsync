@@ -11,6 +11,15 @@ class ReportPage extends StatefulWidget {
 class _ReportPageState extends State<ReportPage> {
   String _selectedPeriod = 'Month';
   final List<String> _periods = ['Today', 'Week', 'Month', 'Quarter', 'All'];
+  
+  // Filter variables
+  DateTime? _startDate;
+  DateTime? _endDate;
+  String _selectedTransactionType = 'All';
+  final List<String> _transactionTypes = ['All', 'GCash In', 'GCash Out', 'Load Sale', 'GCash Topup', 'Load Topup'];
+  double _minAmount = 0.0;
+  double _maxAmount = 10000.0;
+  bool _isFilterApplied = false;
 
   // Summary metrics
   double _gcashIncome = 0.0;
@@ -79,9 +88,10 @@ class _ReportPageState extends State<ReportPage> {
     final transactionsBox = Hive.box('transactions');
     final allTransactions = transactionsBox.values.toList();
 
-    // Filter transactions by selected period
-    final filteredTransactions =
-        _filterTransactionsByPeriod(allTransactions, _selectedPeriod);
+    // Filter transactions by selected period or custom filter
+    final filteredTransactions = _isFilterApplied 
+        ? _filterTransactionsByCustomFilters(allTransactions)
+        : _filterTransactionsByPeriod(allTransactions, _selectedPeriod);
 
     // Process transactions
     for (var tx in filteredTransactions) {
@@ -262,6 +272,364 @@ class _ReportPageState extends State<ReportPage> {
       }
     }).toList();
   }
+  
+  List<dynamic> _filterTransactionsByCustomFilters(List<dynamic> transactions) {
+    return transactions.where((tx) {
+      if (tx['date'] == null) return false;
+
+      final txDate = DateTime.parse(tx['date'] as String? ?? '');
+      final txType = tx['type'] as String? ?? '';
+      
+      // Filter by date range
+      if (_startDate != null && txDate.isBefore(_startDate!)) {
+        return false;
+      }
+      
+      if (_endDate != null) {
+        // Add one day to include the end date fully
+        final endDatePlusOne = _endDate!.add(Duration(days: 1));
+        if (txDate.isAfter(endDatePlusOne)) {
+          return false;
+        }
+      }
+      
+      // Filter by transaction type
+      if (_selectedTransactionType != 'All') {
+        if (_selectedTransactionType == 'GCash In' && txType != 'gcash_in') {
+          return false;
+        } else if (_selectedTransactionType == 'GCash Out' && txType != 'gcash_out') {
+          return false;
+        } else if (_selectedTransactionType == 'Load Sale' && txType != 'load') {
+          return false;
+        } else if (_selectedTransactionType == 'GCash Topup' && txType != 'gcash_topup') {
+          return false;
+        } else if (_selectedTransactionType == 'Load Topup' && txType != 'topup') {
+          return false;
+        }
+      }
+      
+      // Filter by amount range
+      double amount = 0.0;
+      if (txType == 'load') {
+        amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
+      } else {
+        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+      }
+      
+      if (amount < _minAmount || amount > _maxAmount) {
+        return false;
+      }
+      
+      return true;
+    }).toList();
+  }
+
+  void _showFilterOptions() {
+    // Set initial values for the filter
+    DateTime? tempStartDate = _startDate;
+    DateTime? tempEndDate = _endDate;
+    String tempTransactionType = _selectedTransactionType;
+    double tempMinAmount = _minAmount;
+    double tempMaxAmount = _maxAmount;
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  height: 4,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Filter Transactions',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Date Range',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempStartDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) {
+                                      setModalState(() {
+                                        tempStartDate = picked;
+                                      });
+                                    }
+                                  },
+                                  child: _buildDateField(
+                                    tempStartDate == null 
+                                      ? 'Start Date' 
+                                      : DateFormat('MMM dd, yyyy').format(tempStartDate!),
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempEndDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) {
+                                      setModalState(() {
+                                        tempEndDate = picked;
+                                      });
+                                    }
+                                  },
+                                  child: _buildDateField(
+                                    tempEndDate == null 
+                                      ? 'End Date' 
+                                      : DateFormat('MMM dd, yyyy').format(tempEndDate!),
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Transaction Type',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _transactionTypes.map((type) {
+                              return GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    tempTransactionType = type;
+                                  });
+                                },
+                                child: _buildFilterChip(type, type == tempTransactionType),
+                              );
+                            }).toList(),
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Amount Range',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildAmountField('Min: ₱${tempMinAmount.toStringAsFixed(0)}'),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: _buildAmountField('Max: ₱${tempMaxAmount.toStringAsFixed(0)}'),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          RangeSlider(
+                            values: RangeValues(tempMinAmount, tempMaxAmount),
+                            min: 0,
+                            max: 10000,
+                            divisions: 100,
+                            labels: RangeLabels(
+                              '₱${tempMinAmount.toStringAsFixed(0)}',
+                              '₱${tempMaxAmount.toStringAsFixed(0)}',
+                            ),
+                            onChanged: (RangeValues values) {
+                              setModalState(() {
+                                tempMinAmount = values.start;
+                                tempMaxAmount = values.end;
+                              });
+                            },
+                            activeColor: Colors.green[700],
+                            inactiveColor: Colors.grey[300],
+                          ),
+                          SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    setModalState(() {
+                                      tempStartDate = null;
+                                      tempEndDate = null;
+                                      tempTransactionType = 'All';
+                                      tempMinAmount = 0.0;
+                                      tempMaxAmount = 10000.0;
+                                    });
+                                  },
+                                  child: Text('Reset'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey[700],
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _startDate = tempStartDate;
+                                      _endDate = tempEndDate;
+                                      _selectedTransactionType = tempTransactionType;
+                                      _minAmount = tempMinAmount;
+                                      _maxAmount = tempMaxAmount;
+                                      _isFilterApplied = true;
+                                    });
+                                    Navigator.pop(context);
+                                    _loadReportData();
+                                  },
+                                  child: Text('Apply Filters'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green[700],
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildDateField(String label, IconData icon) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmountField(String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, bool isSelected) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isSelected ? Colors.green[700] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isSelected ? Colors.green[700]! : Colors.grey[300]!,
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : Colors.grey[700],
+          fontSize: 14,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -282,7 +650,7 @@ class _ReportPageState extends State<ReportPage> {
                 child: Column(
                   children: [
                     _buildHeader(),
-                    _buildPeriodSelector(),
+                    _buildFilterBar(),
                     Expanded(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.all(_adaptivePadding(16)),
@@ -321,59 +689,157 @@ class _ReportPageState extends State<ReportPage> {
               color: Colors.white,
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadReportData,
-            tooltip: 'Refresh Reports',
-            iconSize: _adaptiveIconSize(24),
+          Row(
+            children: [
+              if (_isFilterApplied)
+                IconButton(
+                  icon: Icon(Icons.filter_list_off, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      _isFilterApplied = false;
+                      _startDate = null;
+                      _endDate = null;
+                      _selectedTransactionType = 'All';
+                      _minAmount = 0.0;
+                      _maxAmount = 10000.0;
+                    });
+                    _loadReportData();
+                  },
+                  tooltip: 'Clear Filters',
+                  iconSize: _adaptiveIconSize(24),
+                ),
+              IconButton(
+                icon: Icon(Icons.refresh, color: Colors.white),
+                onPressed: _loadReportData,
+                tooltip: 'Refresh Reports',
+                iconSize: _adaptiveIconSize(24),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodSelector() {
+  Widget _buildFilterBar() {
     return Container(
-      height: _adaptiveHeight(40),
-      margin: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _periods.length,
-        itemBuilder: (context, index) {
-          final period = _periods[index];
-          final isSelected = period == _selectedPeriod;
+      margin: EdgeInsets.symmetric(horizontal: _adaptivePadding(16), vertical: _adaptivePadding(8)),
+      child: Row(
+        children: [
+          if (!_isFilterApplied) ...[
+            Expanded(
+              child: Container(
+                height: _adaptiveHeight(40),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _periods.length,
+                  itemBuilder: (context, index) {
+                    final period = _periods[index];
+                    final isSelected = period == _selectedPeriod;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedPeriod = period;
-              });
-              _loadReportData();
-            },
-            child: Container(
-              margin: EdgeInsets.only(right: _adaptiveSpacing(8)),
-              padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
-              decoration: BoxDecoration(
-                color:
-                    isSelected ? Colors.white : Colors.white.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
-              ),
-              child: Center(
-                child: Text(
-                  period,
-                  style: TextStyle(
-                    color: isSelected ? Colors.green.shade800 : Colors.white,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                    fontSize: _adaptiveFontSize(14),
-                  ),
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedPeriod = period;
+                        });
+                        _loadReportData();
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(right: _adaptiveSpacing(8)),
+                        padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            period,
+                            style: TextStyle(
+                              color: isSelected ? Colors.green.shade800 : Colors.white,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              fontSize: _adaptiveFontSize(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-          );
-        },
+          ] else ...[
+            Expanded(
+              child: Container(
+                height: _adaptiveHeight(40),
+                padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(12), vertical: _adaptivePadding(8)),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.filter_list, color: Colors.green[700], size: _adaptiveIconSize(18)),
+                    SizedBox(width: _adaptiveSpacing(8)),
+                    Expanded(
+                      child: Text(
+                        _getFilterSummary(),
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: _adaptiveFontSize(12),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          SizedBox(width: _adaptiveSpacing(8)),
+          GestureDetector(
+            onTap: _showFilterOptions,
+            child: Container(
+              height: _adaptiveHeight(40),
+              width: _adaptiveHeight(40),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.filter_alt,
+                color: Colors.green[700],
+                size: _adaptiveIconSize(20),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+  
+  String _getFilterSummary() {
+    if (!_isFilterApplied) return "No filters applied";
+    
+    List<String> filterParts = [];
+    
+    if (_startDate != null && _endDate != null) {
+      filterParts.add("${DateFormat('MM/dd').format(_startDate!)} - ${DateFormat('MM/dd').format(_endDate!)}");
+    } else if (_startDate != null) {
+      filterParts.add("From ${DateFormat('MM/dd').format(_startDate!)}");
+    } else if (_endDate != null) {
+      filterParts.add("Until ${DateFormat('MM/dd').format(_endDate!)}");
+    }
+    
+    if (_selectedTransactionType != 'All') {
+      filterParts.add(_selectedTransactionType);
+    }
+    
+    if (_minAmount > 0 || _maxAmount < 10000) {
+      filterParts.add("₱${_minAmount.toInt()}-₱${_maxAmount.toInt()}");
+    }
+    
+    return filterParts.join(" • ");
   }
 
   Widget _buildSummarySection() {
