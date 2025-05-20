@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -16,6 +16,18 @@ class _HistoryPageState extends State<HistoryPage>
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  // Filter state
+  DateTime? _filterStartDate;
+  DateTime? _filterEndDate;
+  String _filterType = 'All';
+  double _filterMinAmount = 0.0;
+  double _filterMaxAmount = 10000.0;
+  bool _isFilterApplied = false;
+
+  final List<String> _filterTypes = [
+    'All', 'GCash In', 'GCash Out', 'Load Sale', 'GCash Topup', 'Load Topup'
+  ];
 
   @override
   void initState() {
@@ -46,18 +58,92 @@ class _HistoryPageState extends State<HistoryPage>
             if (!_isSearching) _buildBalanceCard(),
             if (!_isSearching) _buildTabBar(),
             if (!_isSearching) _buildFilterChips(),
-            if (!_isSearching)
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
+            if (!_isSearching && _isFilterApplied)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
                   children: [
-                    _TransactionHistoryTab(type: 'all', period: _selectedPeriod),
-                    _TransactionHistoryTab(type: 'gcash', period: _selectedPeriod),
-                    _TransactionHistoryTab(type: 'load', period: _selectedPeriod),
-                    _TransactionHistoryTab(type: 'topup', period: _selectedPeriod),
+                    Icon(Icons.filter_alt, color: Colors.green[700], size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _getFilterSummary(),
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.clear, color: Colors.red[400], size: 18),
+                      tooltip: 'Clear filter',
+                      onPressed: () {
+                        setState(() {
+                          _isFilterApplied = false;
+                          _filterStartDate = null;
+                          _filterEndDate = null;
+                          _filterType = 'All';
+                          _filterMinAmount = 0.0;
+                          _filterMaxAmount = 10000.0;
+                        });
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(),
+                    ),
                   ],
                 ),
               ),
+            Expanded(
+              child: _isSearching
+                  ? _buildSearchResults()
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _TransactionHistoryTab(
+                          type: 'all',
+                          period: _selectedPeriod,
+                          filterApplied: _isFilterApplied,
+                          filterStartDate: _filterStartDate,
+                          filterEndDate: _filterEndDate,
+                          filterType: _filterType,
+                          filterMinAmount: _filterMinAmount,
+                          filterMaxAmount: _filterMaxAmount,
+                        ),
+                        _TransactionHistoryTab(
+                          type: 'gcash',
+                          period: _selectedPeriod,
+                          filterApplied: _isFilterApplied,
+                          filterStartDate: _filterStartDate,
+                          filterEndDate: _filterEndDate,
+                          filterType: _filterType,
+                          filterMinAmount: _filterMinAmount,
+                          filterMaxAmount: _filterMaxAmount,
+                        ),
+                        _TransactionHistoryTab(
+                          type: 'load',
+                          period: _selectedPeriod,
+                          filterApplied: _isFilterApplied,
+                          filterStartDate: _filterStartDate,
+                          filterEndDate: _filterEndDate,
+                          filterType: _filterType,
+                          filterMinAmount: _filterMinAmount,
+                          filterMaxAmount: _filterMaxAmount,
+                        ),
+                        _TransactionHistoryTab(
+                          type: 'topup',
+                          period: _selectedPeriod,
+                          filterApplied: _isFilterApplied,
+                          filterStartDate: _filterStartDate,
+                          filterEndDate: _filterEndDate,
+                          filterType: _filterType,
+                          filterMinAmount: _filterMinAmount,
+                          filterMaxAmount: _filterMaxAmount,
+                        ),
+                      ],
+                    ),
+            ),
           ],
         ),
       ),
@@ -824,141 +910,258 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   void _showFilterOptions() {
+    DateTime? tempStartDate = _filterStartDate;
+    DateTime? tempEndDate = _filterEndDate;
+    String tempType = _filterType;
+    double tempMin = _filterMinAmount;
+    double tempMax = _filterMaxAmount;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 12),
-              height: 4,
-              width: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Filter Transactions',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
+            child: Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(top: 12),
+                  height: 4,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  SizedBox(height: 24),
-                  Text(
-                    'Date Range',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildDateField(
-                            'Start Date', Icons.calendar_today_rounded),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: _buildDateField(
-                            'End Date', Icons.calendar_today_rounded),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  Text(
-                    'Transaction Type',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildFilterChip('All', true),
-                      _buildFilterChip('GCash In', false),
-                      _buildFilterChip('GCash Out', false),
-                      _buildFilterChip('Load Sale', false),
-                      _buildFilterChip('GCash Topup', false),
-                      _buildFilterChip('Load Topup', false),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  Text(
-                    'Amount Range',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  SizedBox(height: 12), 
-                  SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Reset'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.grey[700],
-                            side: BorderSide(color: Colors.grey[300]!),
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Filter Transactions',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade800,
                             ),
                           ),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text('Apply Filters'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[700],
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          SizedBox(height: 24),
+                          Text(
+                            'Date Range',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
                             ),
-                            elevation: 0,
                           ),
-                        ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempStartDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) {
+                                      setModalState(() {
+                                        tempStartDate = picked;
+                                      });
+                                    }
+                                  },
+                                  child: _buildDateField(
+                                    tempStartDate == null
+                                        ? 'Start Date'
+                                        : DateFormat('MMM dd, yyyy').format(tempStartDate!),
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: tempEndDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now(),
+                                    );
+                                    if (picked != null) {
+                                      setModalState(() {
+                                        tempEndDate = picked;
+                                      });
+                                    }
+                                  },
+                                  child: _buildDateField(
+                                    tempEndDate == null
+                                        ? 'End Date'
+                                        : DateFormat('MMM dd, yyyy').format(tempEndDate!),
+                                    Icons.calendar_today_rounded,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Transaction Type',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _filterTypes.map((type) {
+                              return GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    tempType = type;
+                                  });
+                                },
+                                child: _buildFilterChip(type, type == tempType),
+                              );
+                            }).toList(),
+                          ),
+                          SizedBox(height: 24),
+                          Text(
+                            'Amount Range',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade800,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildAmountField('Min: ₱${tempMin.toStringAsFixed(0)}'),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: _buildAmountField('Max: ₱${tempMax.toStringAsFixed(0)}'),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          RangeSlider(
+                            values: RangeValues(tempMin, tempMax),
+                            min: 0,
+                            max: 10000,
+                            divisions: 100,
+                            labels: RangeLabels(
+                              '₱${tempMin.toStringAsFixed(0)}',
+                              '₱${tempMax.toStringAsFixed(0)}',
+                            ),
+                            onChanged: (RangeValues values) {
+                              setModalState(() {
+                                tempMin = values.start;
+                                tempMax = values.end;
+                              });
+                            },
+                            activeColor: Colors.green[700],
+                            inactiveColor: Colors.grey[300],
+                          ),
+                          SizedBox(height: 32),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () {
+                                    setModalState(() {
+                                      tempStartDate = null;
+                                      tempEndDate = null;
+                                      tempType = 'All';
+                                      tempMin = 0.0;
+                                      tempMax = 10000.0;
+                                    });
+                                  },
+                                  child: Text('Reset'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.grey[700],
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    setState(() {
+                                      _filterStartDate = tempStartDate;
+                                      _filterEndDate = tempEndDate;
+                                      _filterType = tempType;
+                                      _filterMinAmount = tempMin;
+                                      _filterMaxAmount = tempMax;
+                                      _isFilterApplied = true;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text('Apply Filters'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green[700],
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
+  }
+
+  String _getFilterSummary() {
+    if (!_isFilterApplied) return "No filters applied";
+    List<String> filterParts = [];
+    if (_filterStartDate != null && _filterEndDate != null) {
+      filterParts.add("${DateFormat('MM/dd').format(_filterStartDate!)} - ${DateFormat('MM/dd').format(_filterEndDate!)}");
+    } else if (_filterStartDate != null) {
+      filterParts.add("From ${DateFormat('MM/dd').format(_filterStartDate!)}");
+    } else if (_filterEndDate != null) {
+      filterParts.add("Until ${DateFormat('MM/dd').format(_filterEndDate!)}");
+    }
+    if (_filterType != 'All') {
+      filterParts.add(_filterType);
+    }
+    if (_filterMinAmount > 0 || _filterMaxAmount < 10000) {
+      filterParts.add("₱${_filterMinAmount.toInt()}-₱${_filterMaxAmount.toInt()}");
+    }
+    return filterParts.join(" • ");
   }
 
   Widget _buildDateField(String label, IconData icon) {
@@ -1139,15 +1342,97 @@ class _HistoryPageState extends State<HistoryPage>
       },
     );
   }
+
+  // Add this method to fix the missing _buildSearchResults error
+  Widget _buildSearchResults() {
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('transactions').listenable(),
+      builder: (context, box, _) {
+        final allTransactions = box.values.toList();
+        final filteredTransactions = allTransactions.where((tx) {
+          if (tx['type'] == null) return false;
+
+          // Search in various fields
+          final String type = tx['type'].toString().toLowerCase();
+          final String date = tx['date'] != null
+              ? DateFormat('MMMM dd, yyyy').format(DateTime.parse(tx['date']))
+              : '';
+          final String amount = tx['amount'] != null
+              ? tx['amount'].toString()
+              : tx['customerPays'] != null
+                  ? tx['customerPays'].toString()
+                  : '';
+
+          final query = _searchQuery.toLowerCase();
+          return type.contains(query) ||
+              date.toLowerCase().contains(query) ||
+              amount.contains(query);
+        }).toList();
+
+        if (filteredTransactions.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 64,
+                  color: Colors.grey[400],
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'No results found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Try a different search term',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return ListView.builder(
+          padding: EdgeInsets.all(16),
+          itemCount: filteredTransactions.length,
+          itemBuilder: (context, index) {
+            final transaction = filteredTransactions[index];
+            return _buildTransactionCard(transaction, context);
+          },
+        );
+      },
+    );
+  }
 }
 
 class _TransactionHistoryTab extends StatelessWidget {
   final String type;
   final String period;
+  final bool filterApplied;
+  final DateTime? filterStartDate;
+  final DateTime? filterEndDate;
+  final String filterType;
+  final double filterMinAmount;
+  final double filterMaxAmount;
 
   const _TransactionHistoryTab({
     required this.type,
     required this.period,
+    this.filterApplied = false,
+    this.filterStartDate,
+    this.filterEndDate,
+    this.filterType = 'All',
+    this.filterMinAmount = 0.0,
+    this.filterMaxAmount = 10000.0,
   });
 
   @override
@@ -1155,7 +1440,9 @@ class _TransactionHistoryTab extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: Hive.box('transactions').listenable(),
       builder: (context, box, _) {
-        final items = _filterTransactions(box.values.toList());
+        final items = filterApplied
+            ? _filterTransactionsByCustomFilters(box.values.toList())
+            : _filterTransactions(box.values.toList());
 
         if (items.isEmpty) {
           return _buildEmptyState(context);
@@ -1175,6 +1462,109 @@ class _TransactionHistoryTab extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<dynamic> _filterTransactions(List<dynamic> transactions) {
+    final now = DateTime.now();
+    final filteredTransactions = transactions.where((transaction) {
+      if (transaction['type'] == null) return false;
+
+      // Filter by type
+      bool matchesType = false;
+      if (type == 'all') {
+        matchesType = true;
+      } else if (type == 'gcash') {
+        matchesType = transaction['type'] == 'gcash_in' ||
+            transaction['type'] == 'gcash_out' ||
+            transaction['type'] == 'gcash_topup';
+      } else if (type == 'load') {
+        matchesType = transaction['type'] == 'load';
+      } else if (type == 'topup') {
+        matchesType = transaction['type'] == 'topup' ||
+            transaction['type'] == 'gcash_topup';
+      }
+
+      if (!matchesType) return false;
+
+      // Filter by period
+      if (period == 'All') return true;
+
+      final transactionDate = DateTime.parse(transaction['date']);
+      if (period == 'Today') {
+        return transactionDate.year == now.year &&
+            transactionDate.month == now.month &&
+            transactionDate.day == now.day;
+      } else if (period == 'Week') {
+        final weekStart = now.subtract(Duration(days: now.weekday - 1));
+        return transactionDate.isAfter(weekStart.subtract(Duration(days: 1)));
+      } else if (period == 'Month') {
+        return transactionDate.year == now.year &&
+            transactionDate.month == now.month;
+      }
+
+      return false;
+    }).toList();
+
+    // Sort by date (newest first)
+    filteredTransactions.sort((a, b) {
+      final dateA = DateTime.parse(a['date']);
+      final dateB = DateTime.parse(b['date']);
+      return dateB.compareTo(dateA);
+    });
+
+    return filteredTransactions;
+  }
+
+  List<dynamic> _filterTransactionsByCustomFilters(List<dynamic> transactions) {
+    return transactions.where((tx) {
+      if (tx['type'] == null || tx['date'] == null) return false;
+
+      // Filter by type tab
+      bool matchesType = false;
+      if (type == 'all') {
+        matchesType = true;
+      } else if (type == 'gcash') {
+        matchesType = tx['type'] == 'gcash_in' ||
+            tx['type'] == 'gcash_out' ||
+            tx['type'] == 'gcash_topup';
+      } else if (type == 'load') {
+        matchesType = tx['type'] == 'load';
+      } else if (type == 'topup') {
+        matchesType = tx['type'] == 'topup' ||
+            tx['type'] == 'gcash_topup';
+      }
+      if (!matchesType) return false;
+
+      // Filter by filterType
+      if (filterType != 'All') {
+        if (filterType == 'GCash In' && tx['type'] != 'gcash_in') return false;
+        if (filterType == 'GCash Out' && tx['type'] != 'gcash_out') return false;
+        if (filterType == 'Load Sale' && tx['type'] != 'load') return false;
+        if (filterType == 'GCash Topup' && tx['type'] != 'gcash_topup') return false;
+        if (filterType == 'Load Topup' && tx['type'] != 'topup') return false;
+      }
+
+      // Filter by date range
+      final txDate = DateTime.parse(tx['date']);
+      if (filterStartDate != null && txDate.isBefore(filterStartDate!)) return false;
+      if (filterEndDate != null && txDate.isAfter(filterEndDate!.add(Duration(days: 1)))) return false;
+
+      // Filter by amount
+      double amount = 0.0;
+      if (tx['type'] == 'load') {
+        amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
+      } else {
+        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+      }
+      if (amount < filterMinAmount || amount > filterMaxAmount) return false;
+
+      return true;
+    }).toList()
+      ..sort((a, b) {
+        final dateA = DateTime.parse(a['date']);
+        final dateB = DateTime.parse(b['date']);
+        return dateB.compareTo(dateA);
+      });
   }
 
   Widget _buildEmptyState(BuildContext context) {
@@ -1251,57 +1641,6 @@ class _TransactionHistoryTab extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  List<dynamic> _filterTransactions(List<dynamic> transactions) {
-    final now = DateTime.now();
-    final filteredTransactions = transactions.where((transaction) {
-      if (transaction['type'] == null) return false;
-
-      // Filter by type
-      bool matchesType = false;
-      if (type == 'all') {
-        matchesType = true;
-      } else if (type == 'gcash') {
-        matchesType = transaction['type'] == 'gcash_in' ||
-            transaction['type'] == 'gcash_out' ||
-            transaction['type'] == 'gcash_topup';
-      } else if (type == 'load') {
-        matchesType = transaction['type'] == 'load';
-      } else if (type == 'topup') {
-        matchesType = transaction['type'] == 'topup' ||
-            transaction['type'] == 'gcash_topup';
-      }
-
-      if (!matchesType) return false;
-
-      // Filter by period
-      if (period == 'All') return true;
-
-      final transactionDate = DateTime.parse(transaction['date']);
-      if (period == 'Today') {
-        return transactionDate.year == now.year &&
-            transactionDate.month == now.month &&
-            transactionDate.day == now.day;
-      } else if (period == 'Week') {
-        final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        return transactionDate.isAfter(weekStart.subtract(Duration(days: 1)));
-      } else if (period == 'Month') {
-        return transactionDate.year == now.year &&
-            transactionDate.month == now.month;
-      }
-
-      return false;
-    }).toList();
-
-    // Sort by date (newest first)
-    filteredTransactions.sort((a, b) {
-      final dateA = DateTime.parse(a['date']);
-      final dateB = DateTime.parse(b['date']);
-      return dateB.compareTo(dateA);
-    });
-
-    return filteredTransactions;
   }
 
   Widget _buildSummaryCard(List<dynamic> transactions) {
