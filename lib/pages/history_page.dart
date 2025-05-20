@@ -108,124 +108,125 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildTransactionCard(dynamic item, BuildContext context) {
-  final transactionType = item['type'];
-  final isLoad = transactionType == 'load';
+    final transactionType = item['type'];
+    final isLoad = transactionType == 'load';
 
-  if (isLoad) {
-    final date = DateTime.parse(item['date']);
-    final formattedTime = DateFormat('hh:mm a').format(date);
-    final customerPays = item['customerPays'] is num ? item['customerPays'].toDouble() : 0.0;
-    final deducted = item['deducted'] is num ? item['deducted'].toDouble() : 0.0;
-    final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
+    if (isLoad) {
+      final date = DateTime.parse(item['date']);
+      final formattedTime = DateFormat('h:mm a').format(date);
+      final customerPays = item['customerPays'] is num ? item['customerPays'].toDouble() : 0.0;
+      final deducted = item['deducted'] is num ? item['deducted'].toDouble() : 0.0;
+      final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
+      final commission = item['commission'] is num ? item['commission'].toDouble() : 0.0;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.purple[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple[100]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.purple[100],
-                  shape: BoxShape.circle,
+      return Container(
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Color(0xFFF8E7FF), // Light purple/pink background to match image
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.phone_android,
+                    color: Colors.purple[700],
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  Icons.phone_android,
-                  color: Colors.purple[700],
-                  size: 20,
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Load Sale',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        formattedTime,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Load Sale',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      formattedTime,
-                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '+₱${customerPays.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.green[100],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Profit: ₱${profit.toStringAsFixed(2)}',
+                      '+₱${customerPays.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 12,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                         color: Colors.green[700],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          SizedBox(height: 8),
-          Divider(height: 1, color: Colors.purple[200]),
-          SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Wallet Deducted:',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              ),
-              Text(
-                '-₱${deducted.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
-              ),
-            ],
-          ),
-          SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Commission:',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              ),
-              Text(
-                '-₱${(item['commission'] ?? 0).toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+                    SizedBox(height: 4),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Divider(height: 1, color: Colors.purple[200]),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Wallet Deducted:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+                Text(
+                  '-₱${deducted.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Commission:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+                Text(
+                  '-₱${commission.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
+    // For other transaction types
     final isIncome =
         transactionType == 'gcash_out' || transactionType == 'gcash_topup';
 
@@ -698,39 +699,70 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
+  // Updated tab bar to match the image design
   Widget _buildTabBar() {
+    final List<String> tabTitles = ['All', 'GCash', 'Load', 'Top-up'];
+    final List<IconData> tabIcons = [
+      Icons.receipt_long_rounded,
+      Icons.account_balance_wallet_rounded,
+      Icons.smartphone_rounded,
+      Icons.add_circle_outline_rounded,
+    ];
+    
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          color: Colors.green.shade700,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey.shade700,
-        labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        unselectedLabelStyle: TextStyle(fontSize: 12),
-        tabs: [
-          Tab(
-            text: 'All',
-            icon: Icon(Icons.receipt_long_rounded, size: 20),
+      child: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            indicator: BoxDecoration(),
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.grey.shade600,
+            labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+            tabs: List.generate(
+              tabTitles.length,
+              (index) => Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: _tabController.index == index 
+                      ? Color(0xFF26C6DA) // Turquoise color for active tab
+                      : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (_tabController.index == index) ...[
+                        Icon(Icons.touch_app, size: 16),
+                        SizedBox(width: 6),
+                      ],
+                      Text(tabTitles[index].toUpperCase()),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            onTap: (index) {
+              setState(() {});
+            },
           ),
-          Tab(
-            text: 'GCash',
-            icon: Icon(Icons.account_balance_wallet_rounded, size: 20),
-          ),
-          Tab(
-            text: 'Load',
-            icon: Icon(Icons.smartphone_rounded, size: 20),
-          ),
-          Tab(
-            text: 'Top-up',
-            icon: Icon(Icons.add_circle_outline_rounded, size: 20),
+          Container(
+            height: 1,
+            color: Colors.grey.shade200,
           ),
         ],
       ),
@@ -1458,16 +1490,128 @@ class _TransactionHistoryTab extends StatelessWidget {
 
   Widget _buildTransactionCard(dynamic item, BuildContext context) {
     final transactionType = item['type'];
-    final isIncome =
-        transactionType == 'gcash_out' || transactionType == 'gcash_topup';
     final isLoad = transactionType == 'load';
 
-    double amount = 0;
     if (isLoad) {
-      amount = (item['customerPays'] as num?)?.toDouble() ?? 0.0;
-    } else {
-      amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+      final date = DateTime.parse(item['date']);
+      final formattedTime = DateFormat('h:mm a').format(date);
+      final customerPays = item['customerPays'] is num ? item['customerPays'].toDouble() : 0.0;
+      final deducted = item['deducted'] is num ? item['deducted'].toDouble() : 0.0;
+      final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
+      final commission = item['commission'] is num ? item['commission'].toDouble() : 0.0;
+
+      return Container(
+        margin: EdgeInsets.only(bottom: 12),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Color(0xFFF8E7FF), // Light purple/pink background to match image
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.phone_android,
+                    color: Colors.purple[700],
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Load Sale',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        formattedTime,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '+₱${customerPays.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Divider(height: 1, color: Colors.purple[200]),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Wallet Deducted:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+                Text(
+                  '-₱${deducted.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                ),
+              ],
+            ),
+            SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Commission:',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+                Text(
+                  '-₱${commission.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     }
+
+    // For other transaction types
+    final isIncome =
+        transactionType == 'gcash_out' || transactionType == 'gcash_topup';
+
+    double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
 
     final date = DateTime.parse(item['date']);
     final formattedTime = DateFormat('hh:mm a').format(date);
@@ -1478,13 +1622,7 @@ class _TransactionHistoryTab extends StatelessWidget {
     Color amountColor;
     String amountPrefix;
 
-    if (isLoad) {
-      transactionIcon = Icons.smartphone_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'Load Sale';
-      amountColor = Colors.green[700]!;
-      amountPrefix = '+';
-    } else if (transactionType == 'gcash_in') {
+    if (transactionType == 'gcash_in') {
       transactionIcon = Icons.arrow_upward_rounded;
       iconColor = Colors.red;
       transactionTitle = 'GCash Cash In';
