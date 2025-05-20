@@ -46,23 +46,18 @@ class _HistoryPageState extends State<HistoryPage>
             if (!_isSearching) _buildBalanceCard(),
             if (!_isSearching) _buildTabBar(),
             if (!_isSearching) _buildFilterChips(),
-            Expanded(
-              child: _isSearching
-                  ? _buildSearchResults()
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _TransactionHistoryTab(
-                            type: 'all', period: _selectedPeriod),
-                        _TransactionHistoryTab(
-                            type: 'gcash', period: _selectedPeriod),
-                        _TransactionHistoryTab(
-                            type: 'load', period: _selectedPeriod),
-                        _TransactionHistoryTab(
-                            type: 'topup', period: _selectedPeriod),
-                      ],
-                    ),
-            ),
+            if (!_isSearching)
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _TransactionHistoryTab(type: 'all', period: _selectedPeriod),
+                    _TransactionHistoryTab(type: 'gcash', period: _selectedPeriod),
+                    _TransactionHistoryTab(type: 'load', period: _selectedPeriod),
+                    _TransactionHistoryTab(type: 'topup', period: _selectedPeriod),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -91,178 +86,150 @@ class _HistoryPageState extends State<HistoryPage>
           ),
         ],
       ),
-      child: _isSearching
-          ? _buildSearchBar()
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.arrow_back_ios_rounded,
-                          color: Colors.green[700], size: 22),
-                      onPressed: () => Navigator.of(context).pop(),
-                      splashRadius: 24,
-                    ),
-                    Text(
-                      'Transaction History',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.search_rounded,
-                          color: Colors.green[700], size: 24),
-                      onPressed: () {
-                        setState(() {
-                          _isSearching = true;
-                        });
-                      },
-                      splashRadius: 24,
-                      tooltip: 'Search transactions',
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.filter_list_rounded,
-                          color: Colors.green[700], size: 24),
-                      onPressed: () {
-                        _showFilterOptions();
-                      },
-                      splashRadius: 24,
-                      tooltip: 'Advanced filters',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: Colors.green[700]),
-          onPressed: () {
-            setState(() {
-              _isSearching = false;
-              _searchController.clear();
-              _searchQuery = '';
-            });
-          },
-          splashRadius: 24,
-        ),
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'Search transactions...',
-              hintStyle: TextStyle(color: Colors.grey[400]),
-              border: InputBorder.none,
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.clear_rounded, color: Colors.grey[600]),
-                      onPressed: () {
-                        _searchController.clear();
-                      },
-                      splashRadius: 20,
-                    )
-                  : null,
-            ),
-            style: TextStyle(fontSize: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                icon: Icon(Icons.filter_list_rounded,
+                    color: Colors.green[700], size: 24),
+                onPressed: () {
+                  _showFilterOptions();
+                },
+                splashRadius: 24,
+                tooltip: 'Advanced filters',
+              ),
+            ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchResults() {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('transactions').listenable(),
-      builder: (context, box, _) {
-        final allTransactions = box.values.toList();
-        final filteredTransactions = allTransactions.where((tx) {
-          if (tx['type'] == null) return false;
-
-          // Search in various fields
-          final String type = tx['type'].toString().toLowerCase();
-          final String date = tx['date'] != null
-              ? DateFormat('MMMM dd, yyyy').format(DateTime.parse(tx['date']))
-              : '';
-          final String amount = tx['amount'] != null
-              ? tx['amount'].toString()
-              : tx['customerPays'] != null
-                  ? tx['customerPays'].toString()
-                  : '';
-
-          final query = _searchQuery.toLowerCase();
-          return type.contains(query) ||
-              date.toLowerCase().contains(query) ||
-              amount.contains(query);
-        }).toList();
-
-        if (filteredTransactions.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.search_off_rounded,
-                  size: 64,
-                  color: Colors.grey[400],
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'No results found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Try a different search term',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: EdgeInsets.all(16),
-          itemCount: filteredTransactions.length,
-          itemBuilder: (context, index) {
-            final transaction = filteredTransactions[index];
-            return _buildTransactionCard(transaction, context);
-          },
-        );
-      },
+        ],
+      ),
     );
   }
 
   Widget _buildTransactionCard(dynamic item, BuildContext context) {
-    final transactionType = item['type'];
+  final transactionType = item['type'];
+  final isLoad = transactionType == 'load';
+
+  if (isLoad) {
+    final date = DateTime.parse(item['date']);
+    final formattedTime = DateFormat('hh:mm a').format(date);
+    final customerPays = item['customerPays'] is num ? item['customerPays'].toDouble() : 0.0;
+    final deducted = item['deducted'] is num ? item['deducted'].toDouble() : 0.0;
+    final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.purple[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple[100]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.purple[100],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.phone_android,
+                  color: Colors.purple[700],
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Load Sale',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      formattedTime,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '+₱${customerPays.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.green[100],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Profit: ₱${profit.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          Divider(height: 1, color: Colors.purple[200]),
+          SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Wallet Deducted:',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+              Text(
+                '-₱${deducted.toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
+              ),
+            ],
+          ),
+          SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Commission:',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+              Text(
+                '-₱${(item['commission'] ?? 0).toStringAsFixed(2)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
     final isIncome =
         transactionType == 'gcash_out' || transactionType == 'gcash_topup';
-    final isLoad = transactionType == 'load';
 
-    double amount = 0;
-    if (isLoad) {
-      amount = (item['customerPays'] as num?)?.toDouble() ?? 0.0;
-    } else {
-      amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
-    }
+    double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
 
     final date = DateTime.parse(item['date']);
     final formattedTime = DateFormat('hh:mm a').format(date);
@@ -273,13 +240,7 @@ class _HistoryPageState extends State<HistoryPage>
     Color amountColor;
     String amountPrefix;
 
-    if (isLoad) {
-      transactionIcon = Icons.smartphone_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'Load Sale';
-      amountColor = Colors.green[700]!;
-      amountPrefix = '+';
-    } else if (transactionType == 'gcash_in') {
+    if (transactionType == 'gcash_in') {
       transactionIcon = Icons.arrow_upward_rounded;
       iconColor = Colors.red;
       transactionTitle = 'GCash Cash In';
@@ -732,108 +693,8 @@ class _HistoryPageState extends State<HistoryPage>
               ),
             ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Total Balance',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                    ),
-                    Container(
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.access_time_rounded,
-                              color: Colors.white, size: 14),
-                          SizedBox(width: 4),
-                          Text(
-                            DateFormat('hh:mm a').format(DateTime.now()),
-                            style: TextStyle(color: Colors.white, fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '₱${(gcashBalance + loadBalance).toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildBalanceItem('GCash', gcashBalance,
-                        Icons.account_balance_wallet_rounded),
-                    Container(
-                        height: 40,
-                        width: 1,
-                        color: Colors.white.withOpacity(0.3)),
-                    _buildBalanceItem(
-                        'Load Wallet', loadBalance, Icons.smartphone_rounded),
-                  ],
-                ),
-              ],
-            ),
-          ),
         );
       },
-    );
-  }
-
-  Widget _buildBalanceItem(String title, double amount, IconData icon) {
-    return Expanded(
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 12,
-                ),
-              ),
-              Text(
-                '₱${amount.toStringAsFixed(2)}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 
@@ -1019,18 +880,7 @@ class _HistoryPageState extends State<HistoryPage>
                       color: Colors.grey.shade800,
                     ),
                   ),
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildAmountField('Min Amount'),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: _buildAmountField('Max Amount'),
-                      ),
-                    ],
-                  ),
+                  SizedBox(height: 12), 
                   SizedBox(height: 32),
                   Row(
                     children: [
