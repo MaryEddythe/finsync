@@ -33,6 +33,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   final _gcashBalanceController = TextEditingController();
   final _loadBalanceController = TextEditingController();
 
+  // Add a ScrollController to control scrolling
+  final ScrollController _scrollController = ScrollController();
+  
+  // Add a key for the transaction form
+  final GlobalKey _transactionFormKey = GlobalKey();
+
   double _gcashBalance = 0.0;
   double _loadWalletBalance = 0.0;
   double _monthlyIncome = 0.0;
@@ -48,7 +54,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   // For transaction form visibility
   bool _showTransactionForm = false;
 
-  DateTime? _selectedDate; // <-- add this line
+  DateTime? _selectedDate;
 
   @override
   void initState() {
@@ -60,6 +66,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _refreshAnimation = CurvedAnimation(parent: _refreshController, curve: Curves.easeInOut);
     _customerPaysController.addListener(_autoCalculateWalletDeducted);
     _loadBalances();
+  }
+
+  // Function to scroll to the transaction form
+  void _scrollToTransactionForm() {
+    // Add a small delay to ensure the widget is rendered
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (_transactionFormKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _transactionFormKey.currentContext!,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.0, // Align at the top of the viewport
+        );
+      }
+    });
   }
 
   double _calculateGcashFee(double amount) {
@@ -393,6 +414,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _gcashBalanceController.dispose();
     _loadBalanceController.dispose();
     _refreshController.dispose();
+    _scrollController.dispose(); // Dispose the scroll controller
     _customerPaysController.removeListener(_autoCalculateWalletDeducted);
     super.dispose();
   }
@@ -444,6 +466,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         onPressed: () {
           setState(() {
             _showTransactionForm = !_showTransactionForm;
+            
+            // If showing the form, scroll to it
+            if (_showTransactionForm) {
+              _scrollToTransactionForm();
+            }
           });
         },
         icon: Icon(_showTransactionForm ? Icons.close : Icons.add, color: Colors.white),
@@ -457,6 +484,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         onRefresh: _loadBalances,
         color: Colors.green[700],
         child: SingleChildScrollView(
+          controller: _scrollController, // Use the scroll controller
           physics: AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(16, 16, 16, 80),
           child: Column(
@@ -718,6 +746,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
               // Transaction Form Section (Collapsible)
               AnimatedContainer(
+                key: _transactionFormKey, // Add the key here
                 duration: Duration(milliseconds: 300),
                 height: _showTransactionForm ? null : 0,
                 curve: Curves.easeInOut,

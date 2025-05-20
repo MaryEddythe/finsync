@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+  import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -381,8 +381,6 @@ class _WalletPageState extends State<WalletPage>
       ],
     );
   }
-
- 
 
   Widget _buildNavButton(IconData icon, String label) {
     return Column(
@@ -1186,6 +1184,136 @@ class _WalletPageState extends State<WalletPage>
       isIncome = true;
       icon = Icons.phone_android;
       iconBgColor = Colors.blue[50]!;
+      
+      // Return the updated Load Sale transaction card
+      return Container(
+        margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
+        padding: EdgeInsets.all(_adaptivePadding(12)),
+        decoration: BoxDecoration(
+          color: Color(0xFFF8E7FF), // Light purple/pink background
+          borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(_adaptivePadding(10)),
+                  decoration: BoxDecoration(
+                    color: Colors.purple[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.phone_android,
+                    color: Colors.purple[700],
+                    size: _adaptiveIconSize(20),
+                  ),
+                ),
+                SizedBox(width: _adaptiveSpacing(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Load Sale',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: _adaptiveFontSize(16), 
+                          color: Colors.grey[800]
+                        ),
+                      ),
+                      SizedBox(height: _adaptiveSpacing(4)),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          color: Colors.grey[600], 
+                          fontSize: _adaptiveFontSize(12)
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '+₱${amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: _adaptiveFontSize(16),
+                        color: Colors.green[700],
+                      ),
+                    ),
+                    SizedBox(height: _adaptiveSpacing(4)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _adaptivePadding(8), 
+                        vertical: _adaptivePadding(2)
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
+                      ),
+                      child: Text(
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: _adaptiveFontSize(12),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            SizedBox(height: _adaptiveSpacing(8)),
+            Divider(height: 1, color: Colors.purple[200]),
+            SizedBox(height: _adaptiveSpacing(8)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Wallet Deducted:',
+                  style: TextStyle(
+                    fontSize: _adaptiveFontSize(12), 
+                    color: Colors.grey[700]
+                  ),
+                ),
+                Text(
+                  '-₱${deducted.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: _adaptiveFontSize(12), 
+                    fontWeight: FontWeight.bold, 
+                    color: Colors.red[700]
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: _adaptiveSpacing(4)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Commission:',
+                  style: TextStyle(
+                    fontSize: _adaptiveFontSize(12), 
+                    color: Colors.grey[700]
+                  ),
+                ),
+                Text(
+                  '-₱${(tx['commission'] ?? 0).toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: _adaptiveFontSize(12), 
+                    color: Colors.grey[700]
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     } else if (type == 'gcash_in') {
       title = 'GCash Cash In';
       amount = tx['amount'] ?? 0.0;
