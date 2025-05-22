@@ -13,7 +13,6 @@ import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
 class HistoryPage extends StatefulWidget {
@@ -1622,12 +1621,11 @@ Future<void> _exportToPdf(List<dynamic> transactions) async {
     if (kIsWeb) {
       // Web platform: Use blob download
       final bytes = await pdf.save();
-      final blob = html.Blob([bytes], 'application/pdf');
+      // No need to handle blob for mobile, this block is only for web.
+      final blob = html.Blob([bytes]);
       final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.pdf')
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      // No need to handle file download for mobile here.
+      // No need to revoke object URL on mobile; this block is for web only.
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
