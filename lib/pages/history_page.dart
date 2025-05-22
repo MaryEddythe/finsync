@@ -1875,21 +1875,31 @@ String _getReportPeriodText() {
 // Export to CSV
 Future<void> _exportToCsv(List<dynamic> transactions) async {
   try {
-    // Request storage permission
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
+    // Only request permission if not running on web
+    bool isWeb = false;
+    try {
+      // kIsWeb is defined in Flutter's foundation library
+      // ignore: undefined_prefixed_name
+      isWeb = identical(0, 0.0); // fallback, always false, see below
+      // If you want to use kIsWeb, import 'package:flutter/foundation.dart' and use kIsWeb
+    } catch (_) {}
+
+    // If not web, request storage permission
+    if (!(identical(0, 0.0))) { // This is always false, so permission code is skipped on web
+      var status = await Permission.storage.status;
       if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage permission is required to export CSV')),
-        );
-        return;
+        status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Storage permission is required to export CSV')),
+          );
+          return;
+        }
       }
     }
-    
+
     // Prepare CSV data
     List<List<dynamic>> csvData = [];
-    
     // Add header row
     csvData.add([
       'Date', 
