@@ -12,7 +12,9 @@ import 'package:share_plus/share_plus.dart';
 import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
-
+import 'package:flutter/foundation.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -1875,54 +1877,129 @@ String _getReportPeriodText() {
 // Export to CSV
 Future<void> _exportToCsv(List<dynamic> transactions) async {
   try {
-    // Only request permission if not running on web
-    bool isWeb = false;
-    try {
-      // kIsWeb is defined in Flutter's foundation library
-      // ignore: undefined_prefixed_name
-      isWeb = identical(0, 0.0); // fallback, always false, see below
-      // If you want to use kIsWeb, import 'package:flutter/foundation.dart' and use kIsWeb
-    } catch (_) {}
+    // Detect if running on web
+    if (kIsWeb) {
+      List<List<dynamic>> csvData = [];
+      // Add header row
+      csvData.add([
+        'Date',
+        'Time',
+        'Transaction Type',
+        'Amount',
+        'Fee/Deducted',
+        'Profit',
+        'Total'
+      ]);
+      // Add transaction rows
+      for (var tx in transactions) {
+        final date = DateTime.parse(tx['date']);
+        final formattedDate = DateFormat('MM/dd/yyyy').format(date);
+        final formattedTime = DateFormat('hh:mm a').format(date);
 
-    // If not web, request storage permission
-    if (!(identical(0, 0.0))) { // This is always false, so permission code is skipped on web
-      var status = await Permission.storage.status;
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-        if (!status.isGranted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Storage permission is required to export CSV')),
-          );
-          return;
+        String type = '';
+        double amount = 0.0;
+        double feeOrDeducted = 0.0;
+        double profit = 0.0;
+        double total = 0.0;
+
+        if (tx['type'] == 'load') {
+          type = 'Load Sale';
+          amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
+          feeOrDeducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
+          profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
+          total = amount;
+        } else if (tx['type'] == 'gcash_in') {
+          type = 'GCash Cash In';
+          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+          feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          profit = feeOrDeducted;
+          total = amount + feeOrDeducted;
+        } else if (tx['type'] == 'gcash_out') {
+          type = 'GCash Cash Out';
+          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+          feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          profit = feeOrDeducted;
+          total = amount;
+        } else if (tx['type'] == 'topup') {
+          type = 'Load Wallet Top-up';
+          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+          feeOrDeducted = 0.0;
+          profit = 0.0;
+          total = amount;
+        } else if (tx['type'] == 'gcash_topup') {
+          type = 'GCash Top-up';
+          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
+          feeOrDeducted = 0.0;
+          profit = 0.0;
+          total = amount;
         }
+
+        csvData.add([
+          formattedDate,
+          formattedTime,
+          type,
+          amount.toStringAsFixed(2),
+          feeOrDeducted.toStringAsFixed(2),
+          profit.toStringAsFixed(2),
+          total.toStringAsFixed(2),
+        ]);
+      }
+      String csv = const ListToCsvConverter().convert(csvData);
+
+      // Use dart:html for browser download
+      final bytes = utf8.encode(csv);
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.csv')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('CSV downloaded successfully!'),
+          backgroundColor: Colors.green[700],
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Mobile/desktop: request permission and use path_provider
+    var status = await Permission.storage.status;
+    if (!status.isGranted) {
+      status = await Permission.storage.request();
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Storage permission is required to export CSV')),
+        );
+        return;
       }
     }
 
-    // Prepare CSV data
     List<List<dynamic>> csvData = [];
     // Add header row
     csvData.add([
-      'Date', 
-      'Time', 
-      'Transaction Type', 
-      'Amount', 
-      'Fee/Deducted', 
-      'Profit', 
+      'Date',
+      'Time',
+      'Transaction Type',
+      'Amount',
+      'Fee/Deducted',
+      'Profit',
       'Total'
     ]);
-    
     // Add transaction rows
     for (var tx in transactions) {
       final date = DateTime.parse(tx['date']);
       final formattedDate = DateFormat('MM/dd/yyyy').format(date);
       final formattedTime = DateFormat('hh:mm a').format(date);
-      
+
       String type = '';
       double amount = 0.0;
       double feeOrDeducted = 0.0;
       double profit = 0.0;
       double total = 0.0;
-      
+
       if (tx['type'] == 'load') {
         type = 'Load Sale';
         amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
@@ -1954,7 +2031,7 @@ Future<void> _exportToCsv(List<dynamic> transactions) async {
         profit = 0.0;
         total = amount;
       }
-      
+
       csvData.add([
         formattedDate,
         formattedTime,
@@ -1965,16 +2042,13 @@ Future<void> _exportToCsv(List<dynamic> transactions) async {
         total.toStringAsFixed(2),
       ]);
     }
-    
-    // Convert to CSV string
+
     String csv = const ListToCsvConverter().convert(csvData);
-    
-    // Save the CSV file
+
     final output = await getTemporaryDirectory();
     final file = File('${output.path}/gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.csv');
     await file.writeAsBytes(utf8.encode(csv));
-    
-    // Show success message
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('CSV generated successfully!'),
@@ -1982,14 +2056,12 @@ Future<void> _exportToCsv(List<dynamic> transactions) async {
         duration: Duration(seconds: 2),
       ),
     );
-    
-    // Share the CSV file
+
     await Share.shareXFiles(
       [XFile(file.path)],
       text: 'GCash & Load Tracker - Transaction Data',
       subject: 'Transaction Data ${DateFormat('MMM dd, yyyy').format(DateTime.now())}',
     );
-    
   } catch (e) {
     print('Error exporting to CSV: $e');
     ScaffoldMessenger.of(context).showSnackBar(
