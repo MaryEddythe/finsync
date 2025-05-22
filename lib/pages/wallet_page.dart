@@ -1,4 +1,4 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -106,8 +106,8 @@ class _WalletPageState extends State<WalletPage>
       if (tx['type'] == 'load') {
         double customerPays = (tx['customerPays'] ?? 0.0).toDouble();
         double deducted = (tx['deducted'] ?? 0.0).toDouble();
-        double mayaCommission = deducted * _mayaCommissionRate;
-        double txProfit = _fixedMarkup + (deducted - mayaCommission);
+        // Update profit calculation - it's simply customer pays minus deducted amount
+        double txProfit = customerPays - deducted;
 
         revenue += customerPays;
         profit += txProfit;
@@ -1177,7 +1177,7 @@ class _WalletPageState extends State<WalletPage>
       double customerPays = tx['customerPays'] ?? 0.0;
       double deducted = tx['deducted'] ?? 0.0;
       double profit =
-          _fixedMarkup + (deducted - (deducted * _mayaCommissionRate));
+          customerPays - deducted;
       subtitle = 'Profit: ₱${profit.toStringAsFixed(2)}';
       amount = customerPays;
       amountColor = Color(0xFF4CAF50);
