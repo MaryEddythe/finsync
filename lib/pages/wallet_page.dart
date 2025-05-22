@@ -320,7 +320,7 @@ class _WalletPageState extends State<WalletPage>
                   ),
                   SizedBox(height: _adaptiveSpacing(8)),
                   Text(
-                    '₱${(_gcashBalance + _loadWalletBalance).toStringAsFixed(2)}',
+                    'PHP ${(_gcashBalance + _loadWalletBalance).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: _adaptiveFontSize(28),
                       fontWeight: FontWeight.bold,
@@ -457,7 +457,7 @@ class _WalletPageState extends State<WalletPage>
             ),
             SizedBox(height: _adaptiveSpacing(8)),
             Text(
-              '₱${(_gcashBalance + _loadWalletBalance).toStringAsFixed(2)}',
+              'PHP ${(_gcashBalance + _loadWalletBalance).toStringAsFixed(2)}',
               style: TextStyle(
                 fontSize: _adaptiveFontSize(32),
                 fontWeight: FontWeight.bold,
@@ -524,7 +524,7 @@ class _WalletPageState extends State<WalletPage>
                 ),
                 SizedBox(height: _adaptiveSpacing(4)),
                 Text(
-                  '₱${amount.toStringAsFixed(2)}',
+                  'PHP ${amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: _adaptiveFontSize(16),
                     fontWeight: FontWeight.bold,
@@ -668,7 +668,7 @@ class _WalletPageState extends State<WalletPage>
           ),
           SizedBox(height: _adaptiveSpacing(12)),
           Text(
-            '₱${amount.toStringAsFixed(2)}',
+            'PHP ${amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontSize: _adaptiveFontSize(20),
               fontWeight: FontWeight.bold,
@@ -791,7 +791,7 @@ class _WalletPageState extends State<WalletPage>
                               return const Text('');
                             }
                             return Text(
-                              '₱${value.toInt()}',
+                              'PHP ${value.toInt()}',
                               style: TextStyle(
                                 color: Color(0xff75729e),
                                 fontWeight: FontWeight.normal,
@@ -846,7 +846,7 @@ class _WalletPageState extends State<WalletPage>
                         getTooltipItems: (List<LineBarSpot> touchedSpots) {
                           return touchedSpots.map((spot) {
                             return LineTooltipItem(
-                              '₱${spot.y.toStringAsFixed(2)}',
+                              'PHP ${spot.y.toStringAsFixed(2)}',
                               TextStyle(
                                 color: spot.barIndex == 0
                                     ? Colors.purple.shade100
@@ -1178,7 +1178,7 @@ class _WalletPageState extends State<WalletPage>
       double deducted = tx['deducted'] ?? 0.0;
       double profit =
           customerPays - deducted;
-      subtitle = 'Profit: ₱${profit.toStringAsFixed(2)}';
+      subtitle = 'Profit: PHP ${profit.toStringAsFixed(2)}';
       amount = customerPays;
       amountColor = Color(0xFF4CAF50);
       isIncome = true;
@@ -1238,7 +1238,7 @@ class _WalletPageState extends State<WalletPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '+₱${amount.toStringAsFixed(2)}',
+                      '+PHP ${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: _adaptiveFontSize(16),
@@ -1256,7 +1256,7 @@ class _WalletPageState extends State<WalletPage>
                         borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
                       ),
                       child: Text(
-                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        'Profit: PHP ${profit.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: _adaptiveFontSize(12),
                           fontWeight: FontWeight.bold,
@@ -1282,7 +1282,7 @@ class _WalletPageState extends State<WalletPage>
                   ),
                 ),
                 Text(
-                  '-₱${deducted.toStringAsFixed(2)}',
+                  '-PHP ${deducted.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: _adaptiveFontSize(12), 
                     fontWeight: FontWeight.bold, 
@@ -1303,7 +1303,7 @@ class _WalletPageState extends State<WalletPage>
                   ),
                 ),
                 Text(
-                  '-₱${(tx['commission'] ?? 0).toStringAsFixed(2)}',
+                  '-PHP ${(tx['commission'] ?? 0).toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: _adaptiveFontSize(12), 
                     color: Colors.grey[700]
@@ -1317,7 +1317,7 @@ class _WalletPageState extends State<WalletPage>
     } else if (type == 'gcash_in') {
       title = 'GCash Cash In';
       amount = tx['amount'] ?? 0.0;
-      subtitle = 'Service Fee: ₱${tx['serviceFee'] ?? 0.0}';
+      subtitle = 'Service Fee: PHP ${tx['serviceFee'] ?? 0.0}';
       amountColor = Color(0xFF4CAF50);
       isIncome = true;
       icon = Icons.arrow_upward;
@@ -1325,7 +1325,7 @@ class _WalletPageState extends State<WalletPage>
     } else if (type == 'gcash_out') {
       title = 'GCash Cash Out';
       amount = tx['amount'] ?? 0.0;
-      subtitle = 'Service Fee: ₱${tx['serviceFee'] ?? 0.0}';
+      subtitle = 'Service Fee: PHP ${tx['serviceFee'] ?? 0.0}';
       amountColor = Colors.red[700]!;
       isIncome = false;
       icon = Icons.arrow_downward;
@@ -1426,7 +1426,7 @@ class _WalletPageState extends State<WalletPage>
                   ),
                 ),
                 Text(
-                  '${isIncome ? '+' : '-'}₱${amount.toStringAsFixed(2)}',
+                  '${isIncome ? '+' : '-'}PHP ${amount.toStringAsFixed(2)}',
                   style: TextStyle(
                     color: amountColor,
                     fontWeight: FontWeight.bold,
@@ -1915,28 +1915,28 @@ class _WalletPageState extends State<WalletPage>
 
       items.add(_buildDetailItem(
         'Customer Pays',
-        '₱${customerPays.toStringAsFixed(2)}',
+        'PHP ${customerPays.toStringAsFixed(2)}',
         Icons.payments_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Wallet Deducted',
-        '₱${deducted.toStringAsFixed(2)}',
+        'PHP ${deducted.toStringAsFixed(2)}',
         Icons.remove_circle_outline_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Commission',
-        '₱${commission.toStringAsFixed(2)}',
+        'PHP ${commission.toStringAsFixed(2)}',
         Icons.monetization_on_rounded,
       ));
       items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
 
       items.add(_buildDetailItem(
         'Profit',
-        '₱${profit.toStringAsFixed(2)}',
+        'PHP ${profit.toStringAsFixed(2)}',
         Icons.trending_up_rounded,
       ));
     } else {
@@ -1958,7 +1958,7 @@ class _WalletPageState extends State<WalletPage>
 
       items.add(_buildDetailItem(
         'Amount',
-        '₱${amount.toStringAsFixed(2)}',
+        'PHP ${amount.toStringAsFixed(2)}',
         Icons.attach_money_rounded,
       ));
 
@@ -1967,7 +1967,7 @@ class _WalletPageState extends State<WalletPage>
             Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
         items.add(_buildDetailItem(
           'Service Fee',
-          '₱${serviceFee.toStringAsFixed(2)}',
+          'PHP ${serviceFee.toStringAsFixed(2)}',
           Icons.receipt_long_rounded,
         ));
       }
@@ -1977,7 +1977,7 @@ class _WalletPageState extends State<WalletPage>
             Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
         items.add(_buildDetailItem(
           'Total Amount',
-          '₱${totalAmount.toStringAsFixed(2)}',
+          'PHP ${totalAmount.toStringAsFixed(2)}',
           Icons.account_balance_wallet_rounded,
         ));
       }

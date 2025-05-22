@@ -263,7 +263,7 @@ class _HistoryPageState extends State<HistoryPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '+₱${customerPays.toStringAsFixed(2)}',
+                      '+PHP ${customerPays.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -278,7 +278,7 @@ class _HistoryPageState extends State<HistoryPage>
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        'Profit: PHP ${profit.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -301,7 +301,7 @@ class _HistoryPageState extends State<HistoryPage>
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-₱${deducted.toStringAsFixed(2)}',
+                  '-PHP ${deducted.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
                 ),
               ],
@@ -315,7 +315,7 @@ class _HistoryPageState extends State<HistoryPage>
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-₱${commission.toStringAsFixed(2)}',
+                  '-PHP ${commission.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ],
@@ -376,7 +376,7 @@ class _HistoryPageState extends State<HistoryPage>
     String? feeText;
     if (item['serviceFee'] != null) {
       final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
+      feeText = 'Fee: PHP ${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -447,7 +447,7 @@ class _HistoryPageState extends State<HistoryPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
+                      '$amountPrefix PHP ${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
@@ -641,40 +641,40 @@ class _HistoryPageState extends State<HistoryPage>
                             if (isLoad) ...[
                               _buildDetailItem(
                                   'Customer Pays',
-                                  '₱${transaction['customerPays'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['customerPays'].toStringAsFixed(2)}',
                                   Icons.payments_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Wallet Deducted',
-                                  '₱${transaction['deducted'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['deducted'].toStringAsFixed(2)}',
                                   Icons.remove_circle_outline_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Commission',
-                                  '₱${transaction['commission'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['commission'].toStringAsFixed(2)}',
                                   Icons.monetization_on_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Profit',
-                                  '₱${transaction['profit'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['profit'].toStringAsFixed(2)}',
                                   Icons.trending_up_rounded),
                             ] else ...[
                               _buildDetailItem(
                                   'Amount',
-                                  '₱${transaction['amount'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['amount'].toStringAsFixed(2)}',
                                   Icons.attach_money_rounded),
                               if (transaction['serviceFee'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Service Fee',
-                                    '₱${transaction['serviceFee'].toStringAsFixed(2)}',
+                                    'PHP ${transaction['serviceFee'].toStringAsFixed(2)}',
                                     Icons.receipt_long_rounded),
                               ],
                               if (transaction['totalAmount'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Total Amount',
-                                    '₱${transaction['totalAmount'].toStringAsFixed(2)}',
+                                    'PHP ${transaction['totalAmount'].toStringAsFixed(2)}',
                                     Icons.account_balance_wallet_rounded),
                               ],
                             ],
@@ -1065,11 +1065,11 @@ class _HistoryPageState extends State<HistoryPage>
                           Row(
                             children: [
                               Expanded(
-                                child: _buildAmountField('Min: ₱${tempMin.toStringAsFixed(0)}'),
+                                child: _buildAmountField('Min: PHP ${tempMin.toStringAsFixed(0)}'),
                               ),
                               SizedBox(width: 16),
                               Expanded(
-                                child: _buildAmountField('Max: ₱${tempMax.toStringAsFixed(0)}'),
+                                child: _buildAmountField('Max: PHP ${tempMax.toStringAsFixed(0)}'),
                               ),
                             ],
                           ),
@@ -1080,8 +1080,8 @@ class _HistoryPageState extends State<HistoryPage>
                             max: 10000,
                             divisions: 100,
                             labels: RangeLabels(
-                              '₱${tempMin.toStringAsFixed(0)}',
-                              '₱${tempMax.toStringAsFixed(0)}',
+                              'PHP ${tempMin.toStringAsFixed(0)}',
+                              'PHP ${tempMax.toStringAsFixed(0)}',
                             ),
                             onChanged: (RangeValues values) {
                               setModalState(() {
@@ -1172,7 +1172,7 @@ class _HistoryPageState extends State<HistoryPage>
       filterParts.add(_filterType);
     }
     if (_filterMinAmount > 0 || _filterMaxAmount < 10000) {
-      filterParts.add("₱${_filterMinAmount.toInt()}-₱${_filterMaxAmount.toInt()}");
+      filterParts.add("PHP ${_filterMinAmount.toInt()}-PHP ${_filterMaxAmount.toInt()}");
     }
     return filterParts.join(" • ");
   }
@@ -1214,7 +1214,7 @@ class _HistoryPageState extends State<HistoryPage>
       child: Row(
         children: [
           Text(
-            '₱',
+            'PHP',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -1726,15 +1726,15 @@ pw.Widget _buildPdfSummary(List<dynamic> transactions) {
         pw.Row(
           children: [
             _buildPdfSummaryItem('Total Transactions', '${transactions.length}'),
-            _buildPdfSummaryItem('Total Income', '₱${totalIncome.toStringAsFixed(2)}'),
-            _buildPdfSummaryItem('Total Expense', '₱${totalExpense.toStringAsFixed(2)}'),
+            _buildPdfSummaryItem('Total Income', 'PHP ${totalIncome.toStringAsFixed(2)}'),
+            _buildPdfSummaryItem('Total Expense', 'PHP ${totalExpense.toStringAsFixed(2)}'),
           ],
         ),
         pw.SizedBox(height: 12),
         pw.Row(
           children: [
-            _buildPdfSummaryItem('Net Cash Flow', '₱${(totalIncome - totalExpense).toStringAsFixed(2)}'),
-            _buildPdfSummaryItem('Total Profit', '₱${totalProfit.toStringAsFixed(2)}'),
+            _buildPdfSummaryItem('Net Cash Flow', 'PHP ${(totalIncome - totalExpense).toStringAsFixed(2)}'),
+            _buildPdfSummaryItem('Total Profit', 'PHP ${totalProfit.toStringAsFixed(2)}'),
             _buildPdfSummaryItem(
               'Profit Margin', 
               totalIncome > 0 ? '${((totalProfit / totalIncome) * 100).toStringAsFixed(1)}%' : '0%'
@@ -1815,29 +1815,29 @@ pw.Widget _buildPdfTransactionsTable(List<dynamic> transactions) {
         
         if (tx['type'] == 'load') {
           type = 'Load Sale';
-          amount = '₱${(tx['customerPays'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = '₱${(tx['deducted'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = '₱${(tx['profit'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          amount = 'PHP ${(tx['customerPays'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          feeOrDeducted = 'PHP ${(tx['deducted'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          profit = 'PHP ${(tx['profit'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
         } else if (tx['type'] == 'gcash_in') {
           type = 'GCash Cash In';
-          amount = '₱${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = '₱${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = '₱${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          feeOrDeducted = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          profit = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
         } else if (tx['type'] == 'gcash_out') {
           type = 'GCash Cash Out';
-          amount = '₱${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = '₱${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = '₱${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          feeOrDeducted = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          profit = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
         } else if (tx['type'] == 'topup') {
           type = 'Load Wallet Top-up';
-          amount = '₱${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = '₱0.00';
-          profit = '₱0.00';
+          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          feeOrDeducted = 'PHP 0.00';
+          profit = 'PHP 0.00';
         } else if (tx['type'] == 'gcash_topup') {
           type = 'GCash Top-up';
-          amount = '₱${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = '₱0.00';
-          profit = '₱0.00';
+          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
+          feeOrDeducted = 'PHP 0.00';
+          profit = 'PHP 0.00';
         }
         
         return pw.TableRow(
@@ -2492,8 +2492,8 @@ class _TransactionHistoryTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    type == 'gcash' ? 'Net: ₱${totalServiceFees.toStringAsFixed(2)}' 
-                                   : 'Net: ₱${(totalIncome - totalExpense).toStringAsFixed(2)}',
+                    type == 'gcash' ? 'Net: PHP ${totalServiceFees.toStringAsFixed(2)}' 
+                                   : 'Net: PHP ${(totalIncome - totalExpense).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -2564,7 +2564,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                 ),
               ),
               Text(
-                '₱${amount.toStringAsFixed(2)}',
+                'PHP ${amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -2635,7 +2635,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '+₱${customerPays.toStringAsFixed(2)}',
+                      '+PHP ${customerPays.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -2650,7 +2650,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        'Profit: PHP ${profit.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -2673,7 +2673,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-₱${deducted.toStringAsFixed(2)}',
+                  '-PHP ${deducted.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
                 ),
               ],
@@ -2687,7 +2687,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-₱${commission.toStringAsFixed(2)}',
+                  '-PHP ${commission.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ],
@@ -2748,7 +2748,7 @@ class _TransactionHistoryTab extends StatelessWidget {
     String? feeText;
     if (item['serviceFee'] != null) {
       final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
+      feeText = 'Fee: PHP ${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -2819,7 +2819,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
+                      '$amountPrefix PHP ${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
@@ -3013,40 +3013,40 @@ class _TransactionHistoryTab extends StatelessWidget {
                             if (isLoad) ...[
                               _buildDetailItem(
                                   'Customer Pays',
-                                  '₱${transaction['customerPays'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['customerPays'].toStringAsFixed(2)}',
                                   Icons.payments_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Wallet Deducted',
-                                  '₱${transaction['deducted'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['deducted'].toStringAsFixed(2)}',
                                   Icons.remove_circle_outline_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Commission',
-                                  '₱${transaction['commission'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['commission'].toStringAsFixed(2)}',
                                   Icons.monetization_on_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Profit',
-                                  '₱${transaction['profit'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['profit'].toStringAsFixed(2)}',
                                   Icons.trending_up_rounded),
                             ] else ...[
                               _buildDetailItem(
                                   'Amount',
-                                  '₱${transaction['amount'].toStringAsFixed(2)}',
+                                  'PHP ${transaction['amount'].toStringAsFixed(2)}',
                                   Icons.attach_money_rounded),
                               if (transaction['serviceFee'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Service Fee',
-                                    '₱${transaction['serviceFee'].toStringAsFixed(2)}',
+                                    'PHP ${transaction['serviceFee'].toStringAsFixed(2)}',
                                     Icons.receipt_long_rounded),
                               ],
                               if (transaction['totalAmount'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Total Amount',
-                                    '₱${transaction['totalAmount'].toStringAsFixed(2)}',
+                                    'PHP ${transaction['totalAmount'].toStringAsFixed(2)}',
                                     Icons.account_balance_wallet_rounded),
                               ],
                             ],
