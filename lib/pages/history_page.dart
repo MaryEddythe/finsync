@@ -13,7 +13,6 @@ import 'package:csv/csv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:html' as html;
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -159,15 +158,6 @@ class _HistoryPageState extends State<HistoryPage>
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Implement export functionality
-          _showExportOptions();
-        },
-        backgroundColor: Colors.green[700],
-        child: Icon(Icons.ios_share, color: Colors.white),
-        elevation: 4,
-      ),
     );
   }
 
@@ -262,7 +252,7 @@ class _HistoryPageState extends State<HistoryPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '+PHP ${customerPays.toStringAsFixed(2)}',
+                      '+₱${customerPays.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -277,7 +267,7 @@ class _HistoryPageState extends State<HistoryPage>
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        'Profit: PHP ${profit.toStringAsFixed(2)}',
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -300,7 +290,7 @@ class _HistoryPageState extends State<HistoryPage>
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-PHP ${deducted.toStringAsFixed(2)}',
+                  '-₱${deducted.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
                 ),
               ],
@@ -314,7 +304,7 @@ class _HistoryPageState extends State<HistoryPage>
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-PHP ${commission.toStringAsFixed(2)}',
+                  '-₱${commission.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ],
@@ -375,7 +365,7 @@ class _HistoryPageState extends State<HistoryPage>
     String? feeText;
     if (item['serviceFee'] != null) {
       final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-      feeText = 'Fee: PHP ${fee.toStringAsFixed(2)}';
+      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -446,7 +436,7 @@ class _HistoryPageState extends State<HistoryPage>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$amountPrefix PHP ${amount.toStringAsFixed(2)}',
+                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
@@ -640,40 +630,40 @@ class _HistoryPageState extends State<HistoryPage>
                             if (isLoad) ...[
                               _buildDetailItem(
                                   'Customer Pays',
-                                  'PHP ${transaction['customerPays'].toStringAsFixed(2)}',
+                                  '₱${transaction['customerPays'].toStringAsFixed(2)}',
                                   Icons.payments_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Wallet Deducted',
-                                  'PHP ${transaction['deducted'].toStringAsFixed(2)}',
+                                  '₱${transaction['deducted'].toStringAsFixed(2)}',
                                   Icons.remove_circle_outline_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Commission',
-                                  'PHP ${transaction['commission'].toStringAsFixed(2)}',
+                                  '₱${transaction['commission'].toStringAsFixed(2)}',
                                   Icons.monetization_on_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Profit',
-                                  'PHP ${transaction['profit'].toStringAsFixed(2)}',
+                                  '₱${transaction['profit'].toStringAsFixed(2)}',
                                   Icons.trending_up_rounded),
                             ] else ...[
                               _buildDetailItem(
                                   'Amount',
-                                  'PHP ${transaction['amount'].toStringAsFixed(2)}',
+                                  '₱${transaction['amount'].toStringAsFixed(2)}',
                                   Icons.attach_money_rounded),
                               if (transaction['serviceFee'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Service Fee',
-                                    'PHP ${transaction['serviceFee'].toStringAsFixed(2)}',
+                                    '₱${transaction['serviceFee'].toStringAsFixed(2)}',
                                     Icons.receipt_long_rounded),
                               ],
                               if (transaction['totalAmount'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Total Amount',
-                                    'PHP ${transaction['totalAmount'].toStringAsFixed(2)}',
+                                    '₱${transaction['totalAmount'].toStringAsFixed(2)}',
                                     Icons.account_balance_wallet_rounded),
                               ],
                             ],
@@ -1046,6 +1036,15 @@ class _HistoryPageState extends State<HistoryPage>
                                   setModalState(() {
                                     tempType = type;
                                   });
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _filterTypes.map((type) {
+                              return GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    tempType = type;
+                                  });
                                 },
                                 child: _buildFilterChip(type, type == tempType),
                               );
@@ -1064,11 +1063,11 @@ class _HistoryPageState extends State<HistoryPage>
                           Row(
                             children: [
                               Expanded(
-                                child: _buildAmountField('Min: PHP ${tempMin.toStringAsFixed(0)}'),
+                                child: _buildAmountField('Min: ₱${tempMin.toStringAsFixed(0)}'),
                               ),
                               SizedBox(width: 16),
                               Expanded(
-                                child: _buildAmountField('Max: PHP ${tempMax.toStringAsFixed(0)}'),
+                                child: _buildAmountField('Max: ₱${tempMax.toStringAsFixed(0)}'),
                               ),
                             ],
                           ),
@@ -1079,8 +1078,8 @@ class _HistoryPageState extends State<HistoryPage>
                             max: 10000,
                             divisions: 100,
                             labels: RangeLabels(
-                              'PHP ${tempMin.toStringAsFixed(0)}',
-                              'PHP ${tempMax.toStringAsFixed(0)}',
+                              '₱${tempMin.toStringAsFixed(0)}',
+                              '₱${tempMax.toStringAsFixed(0)}',
                             ),
                             onChanged: (RangeValues values) {
                               setModalState(() {
@@ -1171,7 +1170,7 @@ class _HistoryPageState extends State<HistoryPage>
       filterParts.add(_filterType);
     }
     if (_filterMinAmount > 0 || _filterMaxAmount < 10000) {
-      filterParts.add("PHP ${_filterMinAmount.toInt()}-PHP ${_filterMaxAmount.toInt()}");
+      filterParts.add("₱${_filterMinAmount.toInt()}-₱${_filterMaxAmount.toInt()}");
     }
     return filterParts.join(" • ");
   }
@@ -1213,7 +1212,7 @@ class _HistoryPageState extends State<HistoryPage>
       child: Row(
         children: [
           Text(
-            'PHP',
+            '₱',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -1256,835 +1255,6 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  void _showExportOptions() {
-  showModalBottomSheet(
-    context: context,
-    backgroundColor: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) => Container(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Export Transactions',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[800],
-            ),
-          ),
-          SizedBox(height: 24),
-          ListTile(
-            leading: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red[700]!.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.picture_as_pdf_rounded, color: Colors.red[700]),
-            ),
-            title: Text(
-              'Export as PDF',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-            subtitle: Text(
-              'Generate a detailed PDF report',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-            onTap: () async {
-              Navigator.pop(context);
-              // Show loading indicator
-              _showLoadingDialog('Generating PDF...');
-              
-              // Get filtered transactions based on current tab and filters
-              final transactions = _getFilteredTransactions();
-              
-              // Generate and export PDF
-              await _exportToPdf(transactions);
-              
-              // Hide loading indicator
-              Navigator.pop(context);
-            },
-          ),
-          ListTile(
-            leading: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green[700]!.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.table_chart_rounded, color: Colors.green[700]),
-            ),
-            title: Text(
-              'Export as CSV',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
-              ),
-            ),
-            subtitle: Text(
-              'Export data in spreadsheet format',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-            ),
-            onTap: () async {
-              Navigator.pop(context);
-              // Show loading indicator
-              _showLoadingDialog('Generating CSV...');
-              
-              // Get filtered transactions based on current tab and filters
-              final transactions = _getFilteredTransactions();
-              
-              // Generate and export CSV
-              await _exportToCsv(transactions);
-              
-              // Hide loading indicator
-              Navigator.pop(context);
-            },
-          ),
-          SizedBox(height: 8),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: OutlinedButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text('Cancel'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey[700],
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                minimumSize: Size(double.infinity, 50),
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-// Show loading dialog
-void _showLoadingDialog(String message) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        content: Row(
-          children: [
-            CircularProgressIndicator(color: Colors.green[700]),
-            SizedBox(width: 20),
-            Text(message),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-// Get filtered transactions based on current tab and filters
-List<dynamic> _getFilteredTransactions() {
-  final box = Hive.box('transactions');
-  final allTransactions = box.values.toList();
-  
-  String type = 'all';
-  switch (_tabController.index) {
-    case 0: type = 'all'; break;
-    case 1: type = 'gcash'; break;
-    case 2: type = 'load'; break;
-    case 3: type = 'topup'; break;
-  }
-  
-  if (_isFilterApplied) {
-    return _filterTransactionsByCustomFilters(allTransactions, type);
-  } else {
-    return _filterTransactionsByPeriod(allTransactions, type);
-  }
-}
-
-// Filter transactions by period
-List<dynamic> _filterTransactionsByPeriod(List<dynamic> transactions, String type) {
-  final now = DateTime.now();
-  final filteredTransactions = transactions.where((transaction) {
-    if (transaction['type'] == null) return false;
-
-    // Filter by type
-    bool matchesType = false;
-    if (type == 'all') {
-      matchesType = true;
-    } else if (type == 'gcash') {
-      matchesType = transaction['type'] == 'gcash_in' ||
-          transaction['type'] == 'gcash_out' ||
-          transaction['type'] == 'gcash_topup';
-    } else if (type == 'load') {
-      matchesType = transaction['type'] == 'load';
-    } else if (type == 'topup') {
-      matchesType = transaction['type'] == 'topup' ||
-          transaction['type'] == 'gcash_topup';
-    }
-
-    if (!matchesType) return false;
-
-    // Filter by period
-    if (_selectedPeriod == 'All') return true;
-
-    final transactionDate = DateTime.parse(transaction['date']);
-    if (_selectedPeriod == 'Today') {
-      return transactionDate.year == now.year &&
-          transactionDate.month == now.month &&
-          transactionDate.day == now.day;
-    } else if (_selectedPeriod == 'Week') {
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
-      return transactionDate.isAfter(weekStart.subtract(Duration(days: 1)));
-    } else if (_selectedPeriod == 'Month') {
-      return transactionDate.year == now.year &&
-          transactionDate.month == now.month;
-    }
-
-    return false;
-  }).toList();
-
-  // Sort by date (newest first)
-  filteredTransactions.sort((a, b) {
-    final dateA = DateTime.parse(a['date']);
-    final dateB = DateTime.parse(b['date']);
-    return dateB.compareTo(dateA);
-  });
-
-  return filteredTransactions;
-}
-
-// Filter transactions by custom filters
-List<dynamic> _filterTransactionsByCustomFilters(List<dynamic> transactions, String type) {
-  return transactions.where((tx) {
-    if (tx['type'] == null || tx['date'] == null) return false;
-
-    // Filter by type tab
-    bool matchesType = false;
-    if (type == 'all') {
-      matchesType = true;
-    } else if (type == 'gcash') {
-      matchesType = tx['type'] == 'gcash_in' ||
-          tx['type'] == 'gcash_out' ||
-          tx['type'] == 'gcash_topup';
-    } else if (type == 'load') {
-      matchesType = tx['type'] == 'load';
-    } else if (type == 'topup') {
-      matchesType = tx['type'] == 'topup' ||
-          tx['type'] == 'gcash_topup';
-    }
-    if (!matchesType) return false;
-
-    // Filter by filterType
-    if (_filterType != 'All') {
-      if (_filterType == 'GCash In' && tx['type'] != 'gcash_in') return false;
-      if (_filterType == 'GCash Out' && tx['type'] != 'gcash_out') return false;
-      if (_filterType == 'Load Sale' && tx['type'] != 'load') return false;
-      if (_filterType == 'GCash Topup' && tx['type'] != 'gcash_topup') return false;
-      if (_filterType == 'Load Topup' && tx['type'] != 'topup') return false;
-    }
-
-    // Filter by date range
-    final txDate = DateTime.parse(tx['date']);
-    if (_filterStartDate != null && txDate.isBefore(_filterStartDate!)) return false;
-    if (_filterEndDate != null && txDate.isAfter(_filterEndDate!.add(Duration(days: 1)))) return false;
-
-    // Filter by amount
-    double amount = 0.0;
-    if (tx['type'] == 'load') {
-      amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
-    } else {
-      amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-    }
-    if (amount < _filterMinAmount || amount > _filterMaxAmount) return false;
-
-    return true;
-  }).toList()
-    ..sort((a, b) {
-      final dateA = DateTime.parse(a['date']);
-      final dateB = DateTime.parse(b['date']);
-      return dateB.compareTo(dateA);
-    });
-}
-
-// Export to PDF
-Future<void> _exportToPdf(List<dynamic> transactions) async {
-  try {
-    // Create PDF document
-    final pdf = pw.Document();
-    
-    // Add app logo and title
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: pw.EdgeInsets.all(32),
-        header: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'GCash & Load Tracker',
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.Text(
-                    'Generated: ${DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.now())}',
-                    style: pw.TextStyle(
-                      fontSize: 12,
-                      color: PdfColors.grey700,
-                    ),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 8),
-              pw.Container(
-                height: 1,
-                color: PdfColors.grey400,
-                width: double.infinity,
-              ),
-              pw.SizedBox(height: 8),
-              pw.Text(
-                'Transaction Report',
-                style: pw.TextStyle(
-                  fontSize: 18,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColors.green700,
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                _getReportPeriodText(),
-                style: pw.TextStyle(
-                  fontSize: 12,
-                  color: PdfColors.grey700,
-                ),
-              ),
-              pw.SizedBox(height: 16),
-            ],
-          );
-        },
-        footer: (pw.Context context) {
-          return pw.Container(
-            alignment: pw.Alignment.centerRight,
-            margin: pw.EdgeInsets.only(top: 16),
-            child: pw.Text(
-              'Page ${context.pageNumber} of ${context.pagesCount}',
-              style: pw.TextStyle(
-                fontSize: 10,
-                color: PdfColors.grey700,
-              ),
-            ),
-          );
-        },
-        build: (pw.Context context) {
-          return [
-            // Summary section
-            _buildPdfSummary(transactions),
-            pw.SizedBox(height: 20),
-            
-            // Transactions table
-            pw.Header(
-              level: 1,
-              text: 'Transactions',
-              textStyle: pw.TextStyle(
-                fontSize: 16,
-                fontWeight: pw.FontWeight.bold,
-              ),
-            ),
-            pw.SizedBox(height: 8),
-            _buildPdfTransactionsTable(transactions),
-          ];
-        },
-      ),
-    );
-
-    // Handle platform-specific export
-    if (kIsWeb) {
-      // Web platform: Use blob download
-      final bytes = await pdf.save();
-      // No need to handle blob for mobile, this block is only for web.
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      // No need to handle file download for mobile here.
-      // No need to revoke object URL on mobile; this block is for web only.
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('PDF downloaded successfully!'),
-          backgroundColor: Colors.green[700],
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      // Mobile/desktop platform: Check permissions and save file
-      var status = await Permission.storage.status;
-      if (!status.isGranted) {
-        status = await Permission.storage.request();
-        if (!status.isGranted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Storage permission is required to export PDF')),
-          );
-          return;
-        }
-      }
-
-      final output = await getTemporaryDirectory();
-      final file = File('${output.path}/gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.pdf');
-      await file.writeAsBytes(await pdf.save());
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('PDF generated successfully!'),
-          backgroundColor: Colors.green[700],
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      // Open and share the PDF file
-      await OpenFile.open(file.path);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'GCash & Load Tracker - Transaction Report',
-        subject: 'Transaction Report ${DateFormat('MMM dd, yyyy').format(DateTime.now())}',
-      );
-    }
-  } catch (e) {
-    print('Error exporting to PDF: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error generating PDF: ${e.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
-
-// Build PDF summary section
-pw.Widget _buildPdfSummary(List<dynamic> transactions) {
-  double totalIncome = 0;
-  double totalExpense = 0;
-  double totalProfit = 0;
-  
-  for (var tx in transactions) {
-    if (tx['type'] == 'gcash_out' || tx['type'] == 'gcash_topup') {
-      totalIncome += (tx['amount'] as num?)?.toDouble() ?? 0.0;
-    } else if (tx['type'] == 'gcash_in') {
-      totalExpense += (tx['amount'] as num?)?.toDouble() ?? 0.0;
-    } else if (tx['type'] == 'load') {
-      if (tx['customerPays'] != null) {
-        totalIncome += (tx['customerPays'] as num).toDouble();
-      }
-      if (tx['deducted'] != null) {
-        totalExpense += (tx['deducted'] as num).toDouble();
-      }
-      if (tx['profit'] != null) {
-        totalProfit += (tx['profit'] as num).toDouble();
-      }
-    } else if (tx['type'] == 'topup') {
-      totalExpense += (tx['amount'] as num?)?.toDouble() ?? 0.0;
-    }
-  }
-  
-  return pw.Container(
-    padding: pw.EdgeInsets.all(16),
-    decoration: pw.BoxDecoration(
-      border: pw.Border.all(color: PdfColors.grey300),
-      borderRadius: pw.BorderRadius.circular(8),
-    ),
-    child: pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'Summary',
-          style: pw.TextStyle(
-            fontSize: 16,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-        pw.SizedBox(height: 12),
-        pw.Row(
-          children: [
-            _buildPdfSummaryItem('Total Transactions', '${transactions.length}'),
-            _buildPdfSummaryItem('Total Income', 'PHP ${totalIncome.toStringAsFixed(2)}'),
-            _buildPdfSummaryItem('Total Expense', 'PHP ${totalExpense.toStringAsFixed(2)}'),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        pw.Row(
-          children: [
-            _buildPdfSummaryItem('Net Cash Flow', 'PHP ${(totalIncome - totalExpense).toStringAsFixed(2)}'),
-            _buildPdfSummaryItem('Total Profit', 'PHP ${totalProfit.toStringAsFixed(2)}'),
-            _buildPdfSummaryItem(
-              'Profit Margin', 
-              totalIncome > 0 ? '${((totalProfit / totalIncome) * 100).toStringAsFixed(1)}%' : '0%'
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-// Build PDF summary item
-pw.Widget _buildPdfSummaryItem(String label, String value) {
-  return pw.Expanded(
-    child: pw.Container(
-      padding: pw.EdgeInsets.all(8),
-      decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
-        borderRadius: pw.BorderRadius.circular(4),
-      ),
-      margin: pw.EdgeInsets.symmetric(horizontal: 4),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text(
-            label,
-            style: pw.TextStyle(
-              fontSize: 10,
-              color: PdfColors.grey700,
-            ),
-          ),
-          pw.SizedBox(height: 4),
-          pw.Text(
-            value,
-            style: pw.TextStyle(
-              fontSize: 12,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-// Build PDF transactions table
-pw.Widget _buildPdfTransactionsTable(List<dynamic> transactions) {
-  return pw.Table(
-    border: pw.TableBorder.all(color: PdfColors.grey300),
-    columnWidths: {
-      0: pw.FlexColumnWidth(2),
-      1: pw.FlexColumnWidth(3),
-      2: pw.FlexColumnWidth(2),
-      3: pw.FlexColumnWidth(2),
-      4: pw.FlexColumnWidth(2),
-    },
-    children: [
-      // Table header
-      pw.TableRow(
-        decoration: pw.BoxDecoration(color: PdfColors.grey200),
-        children: [
-          _buildPdfTableCell('Date', isHeader: true),
-          _buildPdfTableCell('Transaction Type', isHeader: true),
-          _buildPdfTableCell('Amount', isHeader: true),
-          _buildPdfTableCell('Fee/Deducted', isHeader: true),
-          _buildPdfTableCell('Profit', isHeader: true),
-        ],
-      ),
-      // Table rows
-      ...transactions.map((tx) {
-        final date = DateTime.parse(tx['date']);
-        final formattedDate = DateFormat('MM/dd/yyyy hh:mm a').format(date);
-        
-        String type = '';
-        String amount = '';
-        String feeOrDeducted = '';
-        String profit = '';
-        
-        if (tx['type'] == 'load') {
-          type = 'Load Sale';
-          amount = 'PHP ${(tx['customerPays'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = 'PHP ${(tx['deducted'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = 'PHP ${(tx['profit'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-        } else if (tx['type'] == 'gcash_in') {
-          type = 'GCash Cash In';
-          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-        } else if (tx['type'] == 'gcash_out') {
-          type = 'GCash Cash Out';
-          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          profit = 'PHP ${(tx['serviceFee'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-        } else if (tx['type'] == 'topup') {
-          type = 'Load Wallet Top-up';
-          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = 'PHP 0.00';
-          profit = 'PHP 0.00';
-        } else if (tx['type'] == 'gcash_topup') {
-          type = 'GCash Top-up';
-          amount = 'PHP ${(tx['amount'] as num?)?.toStringAsFixed(2) ?? '0.00'}';
-          feeOrDeducted = 'PHP 0.00';
-          profit = 'PHP 0.00';
-        }
-        
-        return pw.TableRow(
-          children: [
-            _buildPdfTableCell(formattedDate),
-            _buildPdfTableCell(type),
-            _buildPdfTableCell(amount),
-            _buildPdfTableCell(feeOrDeducted),
-            _buildPdfTableCell(profit),
-          ],
-        );
-      }).toList(),
-    ],
-  );
-}
-
-// Build PDF table cell
-pw.Widget _buildPdfTableCell(String text, {bool isHeader = false}) {
-  return pw.Padding(
-    padding: pw.EdgeInsets.all(8),
-    child: pw.Text(
-      text,
-      style: pw.TextStyle(
-        fontSize: 10,
-        fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-      ),
-    ),
-  );
-}
-
-// Get report period text
-String _getReportPeriodText() {
-  if (_isFilterApplied) {
-    return 'Custom Filter: ${_getFilterSummary()}';
-  } else {
-    switch (_selectedPeriod) {
-      case 'Today':
-        return 'Transactions for ${DateFormat('MMMM dd, yyyy').format(DateTime.now())}';
-      case 'Week':
-        final now = DateTime.now();
-        final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        final weekEnd = weekStart.add(Duration(days: 6));
-        return 'Transactions from ${DateFormat('MMMM dd').format(weekStart)} to ${DateFormat('MMMM dd, yyyy').format(weekEnd)}';
-      case 'Month':
-        return 'Transactions for ${DateFormat('MMMM yyyy').format(DateTime.now())}';
-      default:
-        return 'All Transactions';
-    }
-  }
-}
-
-// Export to CSV
-Future<void> _exportToCsv(List<dynamic> transactions) async {
-  try {
-    // Detect if running on web
-    if (kIsWeb) {
-      List<List<dynamic>> csvData = [];
-      // Add header row
-      csvData.add([
-        'Date',
-        'Time',
-        'Transaction Type',
-        'Amount',
-        'Fee/Deducted',
-        'Profit',
-        'Total'
-      ]);
-      // Add transaction rows
-      for (var tx in transactions) {
-        final date = DateTime.parse(tx['date']);
-        final formattedDate = DateFormat('MM/dd/yyyy').format(date);
-        final formattedTime = DateFormat('hh:mm a').format(date);
-
-        String type = '';
-        double amount = 0.0;
-        double feeOrDeducted = 0.0;
-        double profit = 0.0;
-        double total = 0.0;
-
-        if (tx['type'] == 'load') {
-          type = 'Load Sale';
-          amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
-          feeOrDeducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
-          profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
-          total = amount;
-        } else if (tx['type'] == 'gcash_in') {
-          type = 'GCash Cash In';
-          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-          feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          profit = feeOrDeducted;
-          total = amount + feeOrDeducted;
-        } else if (tx['type'] == 'gcash_out') {
-          type = 'GCash Cash Out';
-          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-          feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          profit = feeOrDeducted;
-          total = amount;
-        } else if (tx['type'] == 'topup') {
-          type = 'Load Wallet Top-up';
-          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-          feeOrDeducted = 0.0;
-          profit = 0.0;
-          total = amount;
-        } else if (tx['type'] == 'gcash_topup') {
-          type = 'GCash Top-up';
-          amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-          feeOrDeducted = 0.0;
-          profit = 0.0;
-          total = amount;
-        }
-
-        csvData.add([
-          formattedDate,
-          formattedTime,
-          type,
-          amount.toStringAsFixed(2),
-          feeOrDeducted.toStringAsFixed(2),
-          profit.toStringAsFixed(2),
-          total.toStringAsFixed(2),
-        ]);
-      }
-      String csv = const ListToCsvConverter().convert(csvData);
-
-      // Use dart:html for browser download
-      final bytes = utf8.encode(csv);
-      final blob = html.Blob([bytes]);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.csv')
-        ..click();
-      html.Url.revokeObjectUrl(url);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('CSV downloaded successfully!'),
-          backgroundColor: Colors.green[700],
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    // Mobile/desktop: request permission and use path_provider
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage permission is required to export CSV')),
-        );
-        return;
-      }
-    }
-
-    List<List<dynamic>> csvData = [];
-    // Add header row
-    csvData.add([
-      'Date',
-      'Time',
-      'Transaction Type',
-      'Amount',
-      'Fee/Deducted',
-      'Profit',
-      'Total'
-    ]);
-    // Add transaction rows
-    for (var tx in transactions) {
-      final date = DateTime.parse(tx['date']);
-      final formattedDate = DateFormat('MM/dd/yyyy').format(date);
-      final formattedTime = DateFormat('hh:mm a').format(date);
-
-      String type = '';
-      double amount = 0.0;
-      double feeOrDeducted = 0.0;
-      double profit = 0.0;
-      double total = 0.0;
-
-      if (tx['type'] == 'load') {
-        type = 'Load Sale';
-        amount = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
-        feeOrDeducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
-        profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
-        total = amount;
-      } else if (tx['type'] == 'gcash_in') {
-        type = 'GCash Cash In';
-        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        profit = feeOrDeducted;
-        total = amount + feeOrDeducted;
-      } else if (tx['type'] == 'gcash_out') {
-        type = 'GCash Cash Out';
-        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        feeOrDeducted = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        profit = feeOrDeducted;
-        total = amount;
-      } else if (tx['type'] == 'topup') {
-        type = 'Load Wallet Top-up';
-        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        feeOrDeducted = 0.0;
-        profit = 0.0;
-        total = amount;
-      } else if (tx['type'] == 'gcash_topup') {
-        type = 'GCash Top-up';
-        amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
-        feeOrDeducted = 0.0;
-        profit = 0.0;
-        total = amount;
-      }
-
-      csvData.add([
-        formattedDate,
-        formattedTime,
-        type,
-        amount.toStringAsFixed(2),
-        feeOrDeducted.toStringAsFixed(2),
-        profit.toStringAsFixed(2),
-        total.toStringAsFixed(2),
-      ]);
-    }
-
-    String csv = const ListToCsvConverter().convert(csvData);
-
-    final output = await getTemporaryDirectory();
-    final file = File('${output.path}/gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.csv');
-    await file.writeAsBytes(utf8.encode(csv));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('CSV generated successfully!'),
-        backgroundColor: Colors.green[700],
-        duration: Duration(seconds: 2),
-      ),
-    );
-
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'GCash & Load Tracker - Transaction Data',
-      subject: 'Transaction Data ${DateFormat('MMM dd, yyyy').format(DateTime.now())}',
-    );
-  } catch (e) {
-    print('Error exporting to CSV: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error generating CSV: ${e.toString()}'),
-        backgroundColor: Colors.red,
-      ),
-    );
-  }
-}
   // Add this method to fix the missing _buildSearchResults error
   Widget _buildSearchResults() {
     return ValueListenableBuilder(
@@ -2388,24 +1558,18 @@ class _TransactionHistoryTab extends StatelessWidget {
   Widget _buildSummaryCard(List<dynamic> transactions) {
     double totalIncome = 0;
     double totalExpense = 0;
-    double totalServiceFees = 0;
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
         if (transaction['type'] == 'gcash_out') {
           totalIncome += (transaction['amount'] as num).toDouble();
-          if (transaction['serviceFee'] != null) {
-            totalServiceFees += (transaction['serviceFee'] as num).toDouble();
-          }
         } else if (transaction['type'] == 'gcash_in') {
           totalExpense += (transaction['amount'] as num).toDouble();
-          if (transaction['serviceFee'] != null) {
-            totalServiceFees += (transaction['serviceFee'] as num).toDouble();
-          }
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
       }
+
       if (type == 'load' || type == 'all') {
         if (transaction['type'] == 'load') {
           if (transaction['customerPays'] != null) {
@@ -2490,8 +1654,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    type == 'gcash' ? 'Net: PHP ${totalServiceFees.toStringAsFixed(2)}' 
-                                   : 'Net: PHP ${(totalIncome - totalExpense).toStringAsFixed(2)}',
+                    'Net: ₱${(totalIncome - totalExpense).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -2562,7 +1725,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                 ),
               ),
               Text(
-                'PHP ${amount.toStringAsFixed(2)}',
+                '₱${amount.toStringAsFixed(2)}',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -2633,7 +1796,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '+PHP ${customerPays.toStringAsFixed(2)}',
+                      '+₱${customerPays.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -2648,7 +1811,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        'Profit: PHP ${profit.toStringAsFixed(2)}',
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -2671,7 +1834,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-PHP ${deducted.toStringAsFixed(2)}',
+                  '-₱${deducted.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
                 ),
               ],
@@ -2685,7 +1848,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
                 Text(
-                  '-PHP ${commission.toStringAsFixed(2)}',
+                  '-₱${commission.toStringAsFixed(2)}',
                   style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                 ),
               ],
@@ -2746,7 +1909,7 @@ class _TransactionHistoryTab extends StatelessWidget {
     String? feeText;
     if (item['serviceFee'] != null) {
       final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-      feeText = 'Fee: PHP ${fee.toStringAsFixed(2)}';
+      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
     }
 
     return Container(
@@ -2817,7 +1980,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '$amountPrefix PHP ${amount.toStringAsFixed(2)}',
+                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 17,
@@ -3011,40 +2174,40 @@ class _TransactionHistoryTab extends StatelessWidget {
                             if (isLoad) ...[
                               _buildDetailItem(
                                   'Customer Pays',
-                                  'PHP ${transaction['customerPays'].toStringAsFixed(2)}',
+                                  '₱${transaction['customerPays'].toStringAsFixed(2)}',
                                   Icons.payments_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Wallet Deducted',
-                                  'PHP ${transaction['deducted'].toStringAsFixed(2)}',
+                                  '₱${transaction['deducted'].toStringAsFixed(2)}',
                                   Icons.remove_circle_outline_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Commission',
-                                  'PHP ${transaction['commission'].toStringAsFixed(2)}',
+                                  '₱${transaction['commission'].toStringAsFixed(2)}',
                                   Icons.monetization_on_rounded),
                               Divider(height: 24, color: Colors.grey[200]),
                               _buildDetailItem(
                                   'Profit',
-                                  'PHP ${transaction['profit'].toStringAsFixed(2)}',
+                                  '₱${transaction['profit'].toStringAsFixed(2)}',
                                   Icons.trending_up_rounded),
                             ] else ...[
                               _buildDetailItem(
                                   'Amount',
-                                  'PHP ${transaction['amount'].toStringAsFixed(2)}',
+                                  '₱${transaction['amount'].toStringAsFixed(2)}',
                                   Icons.attach_money_rounded),
                               if (transaction['serviceFee'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Service Fee',
-                                    'PHP ${transaction['serviceFee'].toStringAsFixed(2)}',
+                                    '₱${transaction['serviceFee'].toStringAsFixed(2)}',
                                     Icons.receipt_long_rounded),
                               ],
                               if (transaction['totalAmount'] != null) ...[
                                 Divider(height: 24, color: Colors.grey[200]),
                                 _buildDetailItem(
                                     'Total Amount',
-                                    'PHP ${transaction['totalAmount'].toStringAsFixed(2)}',
+                                    '₱${transaction['totalAmount'].toStringAsFixed(2)}',
                                     Icons.account_balance_wallet_rounded),
                               ],
                             ],
@@ -3054,25 +2217,6 @@ class _TransactionHistoryTab extends StatelessWidget {
                       SizedBox(height: 24),
                       Row(
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                // Implement share functionality
-                                Navigator.pop(context);
-                              },
-                              icon: Icon(Icons.share_rounded, size: 18),
-                              label: Text('Share'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.grey[700],
-                                side: BorderSide(color: Colors.grey[300]!),
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 16),
                           Expanded(
                             child: ElevatedButton.icon(
                               onPressed: () {
