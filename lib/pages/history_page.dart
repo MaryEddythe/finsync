@@ -1525,18 +1525,6 @@ List<dynamic> _filterTransactionsByCustomFilters(List<dynamic> transactions, Str
 // Export to PDF
 Future<void> _exportToPdf(List<dynamic> transactions) async {
   try {
-    // Request storage permission
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
-      if (!status.isGranted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Storage permission is required to export PDF')),
-        );
-        return;
-      }
-    }
-    
     // Create PDF document
     final pdf = pw.Document();
     
@@ -1629,31 +1617,58 @@ Future<void> _exportToPdf(List<dynamic> transactions) async {
         },
       ),
     );
-    
-    // Save the PDF file
-    final output = await getTemporaryDirectory();
-    final file = File('${output.path}/gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.pdf');
-    await file.writeAsBytes(await pdf.save());
-    
-    // Show success message and share options
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('PDF generated successfully!'),
-        backgroundColor: Colors.green[700],
-        duration: Duration(seconds: 2),
-      ),
-    );
-    
-    // Open the PDF file
-    await OpenFile.open(file.path);
-    
-    // Share the PDF file
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      text: 'GCash & Load Tracker - Transaction Report',
-      subject: 'Transaction Report ${DateFormat('MMM dd, yyyy').format(DateTime.now())}',
-    );
-    
+
+    // Handle platform-specific export
+    if (kIsWeb) {
+      // Web platform: Use blob download
+      final bytes = await pdf.save();
+      final blob = html.Blob([bytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.pdf')
+        ..click();
+      html.Url.revokeObjectUrl(url);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF downloaded successfully!'),
+          backgroundColor: Colors.green[700],
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Mobile/desktop platform: Check permissions and save file
+      var status = await Permission.storage.status;
+      if (!status.isGranted) {
+        status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Storage permission is required to export PDF')),
+          );
+          return;
+        }
+      }
+
+      final output = await getTemporaryDirectory();
+      final file = File('${output.path}/gcash_transactions_${DateTime.now().millisecondsSinceEpoch}.pdf');
+      await file.writeAsBytes(await pdf.save());
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF generated successfully!'),
+          backgroundColor: Colors.green[700],
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Open and share the PDF file
+      await OpenFile.open(file.path);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'GCash & Load Tracker - Transaction Report',
+        subject: 'Transaction Report ${DateFormat('MMM dd, yyyy').format(DateTime.now())}',
+      );
+    }
   } catch (e) {
     print('Error exporting to PDF: $e');
     ScaffoldMessenger.of(context).showSnackBar(
