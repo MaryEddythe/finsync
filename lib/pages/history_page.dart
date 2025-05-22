@@ -1036,15 +1036,6 @@ class _HistoryPageState extends State<HistoryPage>
                                   setModalState(() {
                                     tempType = type;
                                   });
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _filterTypes.map((type) {
-                              return GestureDetector(
-                                onTap: () {
-                                  setModalState(() {
-                                    tempType = type;
-                                  });
                                 },
                                 child: _buildFilterChip(type, type == tempType),
                               );
@@ -1558,13 +1549,20 @@ class _TransactionHistoryTab extends StatelessWidget {
   Widget _buildSummaryCard(List<dynamic> transactions) {
     double totalIncome = 0;
     double totalExpense = 0;
+    double totalServiceFee = 0;
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
         if (transaction['type'] == 'gcash_out') {
           totalIncome += (transaction['amount'] as num).toDouble();
+          if (transaction['serviceFee'] != null) {
+            totalServiceFee += (transaction['serviceFee'] as num).toDouble();
+          }
         } else if (transaction['type'] == 'gcash_in') {
           totalExpense += (transaction['amount'] as num).toDouble();
+          if (transaction['serviceFee'] != null) {
+            totalServiceFee += (transaction['serviceFee'] as num).toDouble();
+          }
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1589,6 +1587,9 @@ class _TransactionHistoryTab extends StatelessWidget {
         }
       }
     }
+
+    // Calculate net based on transaction type
+    double netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -1654,7 +1655,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Net: ₱${(totalIncome - totalExpense).toStringAsFixed(2)}',
+                    'Net: ₱${netAmount.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
