@@ -1135,74 +1135,120 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   }
 
   Widget _buildTransactionsList() {
-    return ValueListenableBuilder(
-      valueListenable: Hive.box('transactions').listenable(),
-      builder: (context, box, _) {
-        final today = DateTime.now();
-        List items = box.values.toList().reversed.toList();
+  return ValueListenableBuilder(
+    valueListenable: Hive.box('transactions').listenable(),
+    builder: (context, box, _) {
+      final today = DateTime.now();
+      List items = box.values.toList().reversed.toList();
 
-        // Filter by selected date if set
-        if (_selectedDate != null) {
-          items = items.where((item) {
-            if (item['date'] == null) return false;
-            final txDate = DateTime.parse(item['date']);
-            return txDate.year == _selectedDate!.year &&
-                   txDate.month == _selectedDate!.month &&
-                   txDate.day == _selectedDate!.day;
-          }).toList();
-        } else {
-          items = items.take(5).toList();
-        }
+      // Filter by selected date if set
+      if (_selectedDate != null) {
+        items = items.where((item) {
+          if (item['date'] == null) return false;
+          final txDate = DateTime.parse(item['date']);
+          return txDate.year == _selectedDate!.year &&
+                 txDate.month == _selectedDate!.month &&
+                 txDate.day == _selectedDate!.day;
+        }).toList();
+      }
 
-        if (items.isEmpty) {
-          return Container(
-            padding: EdgeInsets.symmetric(vertical: 30),
-            child: Column(
-              children: [
-                Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
-                SizedBox(height: 16),
-                Text(
-                  'No transactions${_selectedDate != null ? ' for this date' : ' yet'}',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  _selectedDate != null
-                    ? 'Pick another date'
-                    : 'Your transactions will appear here',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 14),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _selectedDate != null
-                ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
-                : 'Today, ${DateFormat('MMMM d').format(today)}',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+      if (items.isEmpty) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 30),
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
+              SizedBox(height: 16),
+              Text(
+                'No transactions${_selectedDate != null ? ' for this date' : ' yet'}',
+                style: TextStyle(color: Colors.grey[500], fontSize: 16),
               ),
-            ),
+              SizedBox(height: 8),
+              Text(
+                _selectedDate != null
+                  ? 'Pick another date'
+                  : 'Your transactions will appear here',
+                style: TextStyle(color: Colors.grey[400], fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // Group transactions by date
+      Map<String, List> groupedTransactions = {};
+      
+      for (var item in items) {
+        if (item['date'] == null) continue;
+        
+        final txDate = DateTime.parse(item['date']);
+        final dateKey = DateFormat('yyyy-MM-dd').format(txDate);
+        
+        if (!groupedTransactions.containsKey(dateKey)) {
+          groupedTransactions[dateKey] = [];
+        }
+        
+        groupedTransactions[dateKey]!.add(item);
+      }
+
+      // Sort dates in descending order
+      final sortedDates = groupedTransactions.keys.toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var dateKey in sortedDates) ...[
+            _buildDateHeader(dateKey, today),
             SizedBox(height: 12),
-            ...items.map((item) {
+            ...groupedTransactions[dateKey]!.map((item) {
               if (item['type'] == 'load') {
                 return _buildLoadTransactionItem(item);
               } else {
                 return _buildTransactionItem(item);
               }
             }).toList(),
+            SizedBox(height: 16),
           ],
-        );
-      },
-    );
+        ],
+      );
+    },
+  );
+}
+
+// Add this new method to create date headers
+Widget _buildDateHeader(String dateKey, DateTime today) {
+  final txDate = DateTime.parse(dateKey);
+  String headerText;
+  
+  if (txDate.year == today.year && 
+      txDate.month == today.month && 
+      txDate.day == today.day) {
+    headerText = 'Today, ${DateFormat('MMMM d').format(txDate)}';
+  } else if (txDate.year == today.year && 
+             txDate.month == today.month && 
+             txDate.day == today.day - 1) {
+    headerText = 'Yesterday, ${DateFormat('MMMM d').format(txDate)}';
+  } else {
+    headerText = DateFormat('MMMM d, yyyy').format(txDate);
   }
+  
+  return Container(
+    padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      headerText,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.grey[700],
+      ),
+    ),
+  );
+}
 
   Widget _buildTransactionItem(Map<dynamic, dynamic> item) {
     String typeLabel;
