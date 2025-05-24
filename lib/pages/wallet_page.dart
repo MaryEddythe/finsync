@@ -858,7 +858,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                   ),
                 ),
-              );
+                );
             },
           ),
           SizedBox(height: _adaptiveSpacing(16)),
@@ -1318,6 +1318,92 @@ class _WalletPageState extends State<WalletPage>
       isIncome = false;
       icon = Icons.arrow_upward;
       iconBgColor = Colors.green[50]!;
+      
+      return Container(
+        margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
+        padding: EdgeInsets.all(_adaptivePadding(12)),
+        decoration: BoxDecoration(
+          color: Color(0xFFE8F5E9), // Light green background
+          borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(_adaptivePadding(10)),
+                  decoration: BoxDecoration(
+                    color: Colors.green[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_upward,
+                    color: Colors.green[700],
+                    size: _adaptiveIconSize(20),
+                  ),
+                ),
+                SizedBox(width: _adaptiveSpacing(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: _adaptiveFontSize(16), 
+                          color: Colors.grey[800]
+                        ),
+                      ),
+                      SizedBox(height: _adaptiveSpacing(4)),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          color: Colors.grey[600], 
+                          fontSize: _adaptiveFontSize(12)
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '-PHP ${amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: _adaptiveFontSize(16),
+                        color: Colors.red[700],
+                      ),
+                    ),
+                    SizedBox(height: _adaptiveSpacing(4)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _adaptivePadding(8), 
+                        vertical: _adaptivePadding(2)
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
+                      ),
+                      child: Text(
+                        'Fee: PHP ${serviceFee.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: _adaptiveFontSize(12),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     } else if (type == 'gcash_out') {
       title = 'GCash Cash Out';
       amount = tx['amount'] ?? 0.0;
@@ -1327,22 +1413,92 @@ class _WalletPageState extends State<WalletPage>
       isIncome = true;
       icon = Icons.arrow_downward;
       iconBgColor = Colors.red[50]!;
-    } else if (type == 'topup') {
-      title = 'Load Wallet Top-up';
-      amount = tx['amount'] ?? 0.0;
-      subtitle = 'From GCash Balance';
-      amountColor = Colors.orange[700]!;
-      isIncome = false;
-      icon = Icons.add_circle_outline;
-      iconBgColor = Colors.orange[50]!;
-    } else if (type == 'gcash_topup') {
-      title = 'GCash Top-up';
-      amount = tx['amount'] ?? 0.0;
-      subtitle = 'From Income';
-      amountColor = Color(0xFF4CAF50);
-      isIncome = true;
-      icon = Icons.account_balance_wallet;
-      iconBgColor = Colors.purple[50]!;
+      
+      return Container(
+        margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
+        padding: EdgeInsets.all(_adaptivePadding(12)),
+        decoration: BoxDecoration(
+          color: Color(0xFFFFEBEE), // Light red background
+          borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(_adaptivePadding(10)),
+                  decoration: BoxDecoration(
+                    color: Colors.red[100],
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.arrow_downward,
+                    color: Colors.red[700],
+                    size: _adaptiveIconSize(20),
+                  ),
+                ),
+                SizedBox(width: _adaptiveSpacing(12)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: _adaptiveFontSize(16), 
+                          color: Colors.grey[800]
+                        ),
+                      ),
+                      SizedBox(height: _adaptiveSpacing(4)),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          color: Colors.grey[600], 
+                          fontSize: _adaptiveFontSize(12)
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '+PHP ${amount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: _adaptiveFontSize(16),
+                        color: Colors.green[700],
+                      ),
+                    ),
+                    SizedBox(height: _adaptiveSpacing(4)),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _adaptivePadding(8), 
+                        vertical: _adaptivePadding(2)
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green[100],
+                        borderRadius: BorderRadius.circular(_adaptiveRadius(10)),
+                      ),
+                      child: Text(
+                        'Fee: PHP ${serviceFee.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: _adaptiveFontSize(12),
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
     } else {
       title = type;
       amount = tx['amount'] ?? 0.0;
@@ -1435,7 +1591,7 @@ class _WalletPageState extends State<WalletPage>
           ),
         ),
       ),
-    );
+      );
   }
 
   void _showTransactionDetails(dynamic transaction) {
