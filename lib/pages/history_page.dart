@@ -1708,10 +1708,15 @@ class _TransactionHistoryTab extends StatelessWidget {
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
-        if (transaction['type'] == 'gcash_out' || transaction['type'] == 'gcash_in') {
+        if (transaction['type'] == 'gcash_out') {
+          final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalServiceFee += fee;
-          totalIncome += (transaction['amount'] as num).toDouble();
+          totalIncome += amount + fee; // Total income includes amount and fee
+        } else if (transaction['type'] == 'gcash_in') {
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          totalExpense += amount; // Cash in amount is expense
+          totalIncome += fee; // Service fee is income
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1737,8 +1742,8 @@ class _TransactionHistoryTab extends StatelessWidget {
       }
     }
 
-    // Use totalServiceFee for net in GCash tab
-    final netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
+    // Calculate net amount based on type
+    final netAmount = totalIncome - totalExpense;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
