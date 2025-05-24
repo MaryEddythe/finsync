@@ -35,6 +35,37 @@ class _WalletPageState extends State<WalletPage>
   late double textScaleFactor;
   late EdgeInsets systemPadding;
 
+  double _adaptiveFontSize(double value) {
+    // Adjust font size based on textScaleFactor for accessibility
+    return value * (textScaleFactor.clamp(0.8, 1.5));
+  }
+
+  double _adaptiveSpacing(double value) {
+    // You can adjust the scaling logic as needed for your app
+    return value * (textScaleFactor.clamp(0.8, 1.2));
+  }
+
+  double _adaptiveRadius(double value) {
+    // Adjust border radius based on textScaleFactor or screen size
+    return value * (textScaleFactor.clamp(0.8, 1.2));
+  }
+
+  double _adaptiveHeight(double value) {
+    return value * (screenHeight / 800); // Base height of 800
+  }
+
+  double _adaptiveSize(double value) {
+    return value * (screenWidth / 400); // Base width of 400
+  }
+
+  double _adaptiveIconSize(double value) {
+    return value * (screenWidth / 400); // Base width of 400
+  }
+
+  double _adaptivePadding(double value) {
+    return value * (screenWidth / 400); // Base width of 400
+  }
+
   @override
   void initState() {
     super.initState();
@@ -88,7 +119,6 @@ class _WalletPageState extends State<WalletPage>
     // Get current date for filtering
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final oneWeekAgo = today.subtract(Duration(days: 7));
 
     for (var tx in transactionsBox.values) {
       if (tx['date'] == null) continue;
@@ -106,25 +136,26 @@ class _WalletPageState extends State<WalletPage>
       if (tx['type'] == 'load') {
         double customerPays = (tx['customerPays'] ?? 0.0).toDouble();
         double deducted = (tx['deducted'] ?? 0.0).toDouble();
+        // Update profit calculation - it's simply customer pays minus deducted amount
         double txProfit = customerPays - deducted;
 
         revenue += customerPays;
         profit += txProfit;
 
         // Add to chart data
-        revenueByDay[daysSinceEpoch] = (revenueByDay[daysSinceEpoch] ?? 0) + customerPays;
-        profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + txProfit;
+        revenueByDay[daysSinceEpoch] =
+            (revenueByDay[daysSinceEpoch] ?? 0) + customerPays;
+        profitByDay[daysSinceEpoch] =
+            (profitByDay[daysSinceEpoch] ?? 0) + txProfit;
       } else if (tx['type'] == 'gcash_in' || tx['type'] == 'gcash_out') {
         double amount = (tx['amount'] ?? 0.0).toDouble();
         double serviceFee = (tx['serviceFee'] ?? 0.0).toDouble();
-        
-        // Add GCash service fee to profit
-        profit += serviceFee;
-
-        // Update revenue and profit tracking
         revenue += amount;
-        profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + serviceFee;
+        profit += serviceFee; // Add service fee to total profit
+
+        // Add to chart data
         revenueByDay[daysSinceEpoch] = (revenueByDay[daysSinceEpoch] ?? 0) + amount;
+        profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + serviceFee;
       }
     }
 
@@ -166,43 +197,13 @@ class _WalletPageState extends State<WalletPage>
     _setResponsiveValues(context);
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadWalletData,
-        child: _isLoading
-            ? _buildLoadingView()
-            : SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _buildHeader(),
-                    Container(
-                      color: Colors.white,
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: Color(0xFF6B48FF),
-                        unselectedLabelColor: Colors.grey[600],
-                        indicatorColor: Color(0xFF6B48FF),
-                        indicatorWeight: 3,
-                        tabs: [
-                          Tab(text: 'ANALYTICS'),
-                          Tab(text: 'TRANSACTIONS'),
-                        ],
-                      ),
-                    ),
-                    LimitedBox(
-                      maxHeight: MediaQuery.of(context).size.height,
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildAnalyticsTab(),
-                          _buildTransactionsTab(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      ),
+      body: _isLoading
+          ? _buildLoadingView()
+          : OrientationBuilder(
+              builder: (context, orientation) {
+                return _buildMainView(orientation);
+              },
+            ),
     );
   }
 
@@ -406,34 +407,6 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  Widget _buildNavButton(IconData icon, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: EdgeInsets.all(_adaptivePadding(10)),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
-          ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: _adaptiveIconSize(20),
-          ),
-        ),
-        SizedBox(height: _adaptiveSpacing(4)),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: _adaptiveFontSize(12),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildHeader() {
     return Container(
       decoration: BoxDecoration(
@@ -495,6 +468,30 @@ class _WalletPageState extends State<WalletPage>
               children: [
                 Expanded(
                   child: _buildBalanceCard(
+                    'GCash',
+                    _gcashBalance,
+                    Icons.account_balance_wallet,
+                  ),
+                ),
+                SizedBox(width: _adaptiveSpacing(16)),
+                Expanded(
+                  child: _buildBalanceCard(
+                    'Load Wallet',
+                    _loadWalletBalance,
+                    Icons.phone_android,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard(String title, double amount, IconData icon) {
+    return Container(
+      padding: EdgeInsets.symmetric(
           horizontal: _adaptivePadding(16), vertical: _adaptivePadding(12)),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
@@ -853,7 +850,6 @@ class _WalletPageState extends State<WalletPage>
                                     : Colors.green.shade100,
                                 fontWeight: FontWeight.bold,
                                 fontSize: _adaptiveFontSize(12),
-                                backgroundColor: Colors.blueGrey.shade800, // alternative bg color
                               ),
                             );
                           }).toList();
@@ -1164,7 +1160,7 @@ class _WalletPageState extends State<WalletPage>
     bool isIncome = false;
     IconData icon;
     Color iconBgColor;
-
+    
     // Format date
     String formattedDate = '';
     if (tx['date'] != null) {
@@ -1176,8 +1172,7 @@ class _WalletPageState extends State<WalletPage>
       title = 'Load Sale';
       double customerPays = tx['customerPays'] ?? 0.0;
       double deducted = tx['deducted'] ?? 0.0;
-      double profit =
-          customerPays - deducted;
+      double profit = customerPays - deducted;
       subtitle = 'Profit: PHP ${profit.toStringAsFixed(2)}';
       amount = customerPays;
       amountColor = Color(0xFF4CAF50);
@@ -1185,7 +1180,7 @@ class _WalletPageState extends State<WalletPage>
       icon = Icons.phone_android;
       iconBgColor = Colors.blue[50]!;
       
-      // Return the updated Load Sale transaction card
+      // Return the Load Sale transaction card
       return Container(
         margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
         padding: EdgeInsets.all(_adaptivePadding(12)),
@@ -1317,17 +1312,19 @@ class _WalletPageState extends State<WalletPage>
     } else if (type == 'gcash_in') {
       title = 'GCash Cash In';
       amount = tx['amount'] ?? 0.0;
-      subtitle = 'Service Fee: PHP ${tx['serviceFee'] ?? 0.0}';
-      amountColor = Color(0xFF4CAF50);
-      isIncome = true;
+      double serviceFee = tx['serviceFee'] ?? 0.0;
+      subtitle = 'Profit (Fee): PHP ${serviceFee.toStringAsFixed(2)}';
+      amountColor = Colors.red[700]!;
+      isIncome = false;
       icon = Icons.arrow_upward;
       iconBgColor = Colors.green[50]!;
     } else if (type == 'gcash_out') {
       title = 'GCash Cash Out';
       amount = tx['amount'] ?? 0.0;
-      subtitle = 'Service Fee: PHP ${tx['serviceFee'] ?? 0.0}';
-      amountColor = Colors.red[700]!;
-      isIncome = false;
+      double serviceFee = tx['serviceFee'] ?? 0.0;
+      subtitle = 'Profit (Fee): PHP ${serviceFee.toStringAsFixed(2)}';  
+      amountColor = Colors.green[700]!;
+      isIncome = true;
       icon = Icons.arrow_downward;
       iconBgColor = Colors.red[50]!;
     } else if (type == 'topup') {
@@ -1850,7 +1847,7 @@ class _WalletPageState extends State<WalletPage>
                             ),
                           ),
                         ),
-                        SizedBox(width: _adaptiveSpacing(16)),
+                        SizedBox(width: _adaptiveSpacing(12)),
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: () {
@@ -1887,105 +1884,6 @@ class _WalletPageState extends State<WalletPage>
     );
   }
 
-  List<Widget> _buildTransactionDetailItems(dynamic transaction,
-      {required String type}) {
-    List<Widget> items = [];
-
-    if (type == 'load') {
-      double customerPays = 0.0;
-      double deducted = 0.0;
-      double commission = 0.0;
-      double profit = 0.0;
-
-      try {
-        customerPays = (transaction['customerPays'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      try {
-        deducted = (transaction['deducted'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      try {
-        commission = (transaction['commission'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      try {
-        profit = (transaction['profit'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      items.add(_buildDetailItem(
-        'Customer Pays',
-        'PHP ${customerPays.toStringAsFixed(2)}',
-        Icons.payments_rounded,
-      ));
-      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
-
-      items.add(_buildDetailItem(
-        'Wallet Deducted',
-        'PHP ${deducted.toStringAsFixed(2)}',
-        Icons.remove_circle_outline_rounded,
-      ));
-      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
-
-      items.add(_buildDetailItem(
-        'Commission',
-        'PHP ${commission.toStringAsFixed(2)}',
-        Icons.monetization_on_rounded,
-      ));
-      items.add(Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
-
-      items.add(_buildDetailItem(
-        'Profit',
-        'PHP ${profit.toStringAsFixed(2)}',
-        Icons.trending_up_rounded,
-      ));
-    } else {
-      double amount = 0.0;
-      double serviceFee = 0.0;
-      double totalAmount = 0.0;
-
-      try {
-        amount = (transaction['amount'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      try {
-        serviceFee = (transaction['serviceFee'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      try {
-        totalAmount = (transaction['totalAmount'] ?? 0.0).toDouble();
-      } catch (_) {}
-
-      items.add(_buildDetailItem(
-        'Amount',
-        'PHP ${amount.toStringAsFixed(2)}',
-        Icons.attach_money_rounded,
-      ));
-
-      if (transaction['serviceFee'] != null) {
-        items.add(
-            Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
-        items.add(_buildDetailItem(
-          'Service Fee',
-          'PHP ${serviceFee.toStringAsFixed(2)}',
-          Icons.receipt_long_rounded,
-        ));
-      }
-
-      if (transaction['totalAmount'] != null) {
-        items.add(
-            Divider(height: _adaptiveSpacing(24), color: Colors.grey[200]));
-        items.add(_buildDetailItem(
-          'Total Amount',
-          'PHP ${totalAmount.toStringAsFixed(2)}',
-          Icons.account_balance_wallet_rounded,
-        ));
-      }
-    }
-
-    return items;
-  }
-
   Widget _buildDetailItem(String label, String value, IconData icon) {
     return Row(
       children: [
@@ -1995,106 +1893,116 @@ class _WalletPageState extends State<WalletPage>
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(_adaptiveRadius(8)),
           ),
-          child:
-              Icon(icon, size: _adaptiveIconSize(16), color: Colors.grey[700]),
+          child: Icon(
+            icon,
+            size: _adaptiveIconSize(16),
+            color: Colors.grey[700],
+          ),
         ),
         SizedBox(width: _adaptiveSpacing(12)),
         Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: _adaptiveFontSize(14),
-              color: Colors.grey[600],
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: _adaptiveFontSize(14),
-            fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: _adaptiveFontSize(12),
+                  color: Colors.grey[600],
+                ),
+              ),
+              SizedBox(height: _adaptiveSpacing(4)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: _adaptiveFontSize(14),
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  // Responsive helpers
-  double _adaptiveFontSize(double size) {
-    // Scale font size based on device size and text scale factor
-    double baseSize = size;
-    if (isLargeScreen)
-      baseSize *= 1.2;
-    else if (isTablet) baseSize *= 1.1;
-
-    // Apply system text scale factor for accessibility
-    return baseSize * textScaleFactor;
-  }
-
-  double _adaptiveIconSize(double size) {
-    // Scale icons based on device size
-    if (isLargeScreen) return size * 1.2;
-    if (isTablet) return size * 1.1;
-    return size;
-  }
-
-  double _adaptivePadding(double padding) {
-    // Scale padding based on device size
-    if (isLargeScreen) return padding * 1.5;
-    if (isTablet) return padding * 1.2;
-    return padding;
-  }
-
-  double _adaptiveSpacing(double spacing) {
-    // Scale spacing between elements based on device size
-    if (isLargeScreen) return spacing * 1.5;
-    if (isTablet) return spacing * 1.2;
-    return spacing;
-  }
-
-  double _adaptiveRadius(double radius) {
-    // Scale border radius based on device size
-    if (isLargeScreen) return radius * 1.3;
-    if (isTablet) return radius * 1.1;
-    return radius;
-  }
-
-  double _adaptiveHeight(double height) {
-    // Scale height based on screen height
-    double scaleFactor = screenHeight / 800; // Base height
-    return height * scaleFactor;
-  }
-
-  double _adaptiveSize(double size) {
-    // General purpose size scaling
-    if (isLargeScreen) return size * 1.3;
-    if (isTablet) return size * 1.1;
-    return size;
+  List<Widget> _buildTransactionDetailItems(dynamic transaction, {required String type}) {
+    List<Widget> items = [];
+    
+    if (type == 'load') {
+      items = [
+        _buildDetailItem(
+          'Customer Pays',
+          'PHP ${(transaction['customerPays'] ?? 0.0).toStringAsFixed(2)}',
+          Icons.payments_outlined,
+        ),
+        Divider(height: _adaptiveSpacing(24)),
+        _buildDetailItem(
+          'Wallet Deducted',
+          'PHP ${(transaction['deducted'] ?? 0.0).toStringAsFixed(2)}',
+          Icons.account_balance_wallet_outlined,
+        ),
+        if (transaction['commission'] != null) ...[
+          Divider(height: _adaptiveSpacing(24)),
+          _buildDetailItem(
+            'Commission',
+            'PHP ${(transaction['commission'] ?? 0.0).toStringAsFixed(2)}',
+            Icons.currency_exchange,
+          ),
+        ],
+      ];
+    } else if (type == 'gcash_in' || type == 'gcash_out') {
+      items = [
+        _buildDetailItem(
+          'Amount',
+          'PHP ${(transaction['amount'] ?? 0.0).toStringAsFixed(2)}',
+          Icons.payments_outlined,
+        ),
+        if (transaction['serviceFee'] != null) ...[
+          Divider(height: _adaptiveSpacing(24)),
+          _buildDetailItem(
+            'Service Fee',
+            'PHP ${(transaction['serviceFee'] ?? 0.0).toStringAsFixed(2)}',
+            Icons.currency_exchange,
+          ),
+        ],
+      ];
+    } else {
+      items = [
+        _buildDetailItem(
+          'Amount',
+          'PHP ${(transaction['amount'] ?? 0.0).toStringAsFixed(2)}',
+          Icons.payments_outlined,
+        ),
+      ];
+    }
+    
+    return items;
   }
 }
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
+  _SliverAppBarDelegate(this._tabBar);
 
-  _SliverAppBarDelegate(this.tabBar);
+  final TabBar _tabBar;
 
   @override
-  Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+  double get minExtent => _tabBar.preferredSize.height;
+  
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       color: Colors.white,
-      child: tabBar,
+      child: _tabBar,
     );
   }
 
-  double get minExtent => tabBar.preferredSize.height;
-
   @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  bool shouldRebuild(covariant _SliverAppBarDelegate oldDelegate) {
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
     return false;
   }
 }
