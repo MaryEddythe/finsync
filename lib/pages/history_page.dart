@@ -121,6 +121,7 @@ class _HistoryPageState extends State<HistoryPage>
                           filterType: _filterType,
                           filterMinAmount: _filterMinAmount,
                           filterMaxAmount: _filterMaxAmount,
+                          buildTransactionCard: _buildTransactionCard,
                         ),
                         _TransactionHistoryTab(
                           type: 'gcash',
@@ -131,6 +132,7 @@ class _HistoryPageState extends State<HistoryPage>
                           filterType: _filterType,
                           filterMinAmount: _filterMinAmount,
                           filterMaxAmount: _filterMaxAmount,
+                          buildTransactionCard: _buildTransactionCard,
                         ),
                         _TransactionHistoryTab(
                           type: 'load',
@@ -141,6 +143,7 @@ class _HistoryPageState extends State<HistoryPage>
                           filterType: _filterType,
                           filterMinAmount: _filterMinAmount,
                           filterMaxAmount: _filterMaxAmount,
+                          buildTransactionCard: _buildTransactionCard,
                         ),
                         _TransactionHistoryTab(
                           type: 'topup',
@@ -151,6 +154,7 @@ class _HistoryPageState extends State<HistoryPage>
                           filterType: _filterType,
                           filterMinAmount: _filterMinAmount,
                           filterMaxAmount: _filterMaxAmount,
+                          buildTransactionCard: _buildTransactionCard,
                         ),
                       ],
                     ),
@@ -208,10 +212,9 @@ class _HistoryPageState extends State<HistoryPage>
       final commission = item['commission'] is num ? item['commission'].toDouble() : 0.0;
 
       return Container(
-        margin: EdgeInsets.only(bottom: 12),
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Color(0xFFF8E7FF), // Light purple/pink background to match image
+          color: Color(0xFFF8E7FF),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -315,11 +318,7 @@ class _HistoryPageState extends State<HistoryPage>
     }
 
     // For other transaction types
-    final isIncome =
-        transactionType == 'gcash_out' || transactionType == 'gcash_topup';
-
     double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
-
     final date = DateTime.parse(item['date']);
     final formattedTime = DateFormat('hh:mm a').format(date);
 
@@ -361,7 +360,6 @@ class _HistoryPageState extends State<HistoryPage>
       amountPrefix = '';
     }
 
-    // Fee (serviceFee) if available
     String? feeText;
     if (item['serviceFee'] != null) {
       final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
@@ -369,22 +367,15 @@ class _HistoryPageState extends State<HistoryPage>
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () {
             _showTransactionDetails(context, item);
           },
@@ -392,7 +383,6 @@ class _HistoryPageState extends State<HistoryPage>
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                // Icon circle
                 Container(
                   padding: EdgeInsets.all(10),
                   decoration: BoxDecoration(
@@ -402,11 +392,10 @@ class _HistoryPageState extends State<HistoryPage>
                   child: Icon(
                     transactionIcon,
                     color: iconColor,
-                    size: 24,
+                    size: 20,
                   ),
                 ),
                 SizedBox(width: 16),
-                // Title and time
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -415,7 +404,7 @@ class _HistoryPageState extends State<HistoryPage>
                         transactionTitle,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 14,
                           color: Colors.grey[900],
                         ),
                       ),
@@ -423,7 +412,7 @@ class _HistoryPageState extends State<HistoryPage>
                       Text(
                         formattedTime,
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: 12,
                           color: Colors.grey[600],
                           fontWeight: FontWeight.w500,
                         ),
@@ -431,7 +420,6 @@ class _HistoryPageState extends State<HistoryPage>
                     ],
                   ),
                 ),
-                // Amount and fee
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -439,7 +427,7 @@ class _HistoryPageState extends State<HistoryPage>
                       '$amountPrefix₱${amount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 17,
+                        fontSize: 15,
                         color: amountColor,
                         letterSpacing: 0.5,
                       ),
@@ -450,20 +438,21 @@ class _HistoryPageState extends State<HistoryPage>
                         child: Text(
                           feeText,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: Colors.grey[500],
                             fontWeight: FontWeight.w400,
                           ),
                         ),
                       ),
-                  ],
-                ),
+                ],
+              ),
               ],
             ),
           ),
         ),
       ),
-    );
+      );
+    
   }
 
   void _showTransactionDetails(BuildContext context, dynamic transaction) {
@@ -1326,6 +1315,7 @@ class _TransactionHistoryTab extends StatelessWidget {
   final String filterType;
   final double filterMinAmount;
   final double filterMaxAmount;
+  final Widget Function(dynamic, BuildContext) buildTransactionCard;
 
   const _TransactionHistoryTab({
     required this.type,
@@ -1336,6 +1326,7 @@ class _TransactionHistoryTab extends StatelessWidget {
     this.filterType = 'All',
     this.filterMinAmount = 0.0,
     this.filterMaxAmount = 10000.0,
+    required this.buildTransactionCard,
   });
 
   @override
@@ -1351,19 +1342,183 @@ class _TransactionHistoryTab extends StatelessWidget {
           return _buildEmptyState(context);
         }
 
+        // Group transactions by date
+        final groupedTransactions = _groupTransactionsByDate(items);
+
+        final groupedEntries = groupedTransactions.entries.toList();
+
         return ListView.builder(
           padding: EdgeInsets.all(16),
-          itemCount: items.length + 1, // +1 for the header
+          itemCount: groupedEntries.length + 1, // +1 for the summary header
           itemBuilder: (context, index) {
             if (index == 0) {
               return _buildSummaryCard(items);
             }
 
-            final item = items[index - 1];
-            return _buildTransactionCard(item, context);
+            final dateGroup = groupedEntries[index - 1];
+            return _buildDateGroup(dateGroup, context);
           },
         );
       },
+    );
+  }
+
+  Map<String, List<dynamic>> _groupTransactionsByDate(List<dynamic> transactions) {
+    Map<String, List<dynamic>> grouped = {};
+    
+    for (var transaction in transactions) {
+      final date = DateTime.parse(transaction['date']);
+      final dateKey = DateFormat('yyyy-MM-dd').format(date);
+      
+      if (!grouped.containsKey(dateKey)) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey]!.add(transaction);
+    }
+    
+    // Sort the groups by date (newest first)
+    final sortedEntries = grouped.entries.toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    
+    return Map.fromEntries(sortedEntries);
+  }
+
+  Widget _buildDateGroup(MapEntry<String, List<dynamic>> dateGroup, BuildContext context) {
+    final date = DateTime.parse(dateGroup.key);
+    final today = DateTime.now();
+    final yesterday = today.subtract(Duration(days: 1));
+    
+    String dateLabel;
+    if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(today)) {
+      dateLabel = 'Today';
+    } else if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(yesterday)) {
+      dateLabel = 'Yesterday';
+    } else {
+      dateLabel = DateFormat('MMMM dd, yyyy').format(date);
+    }
+    
+    // Calculate daily totals
+    double dailyIncome = 0;
+    double dailyExpense = 0;
+    
+    for (var transaction in dateGroup.value) {
+      if (transaction['type'] == 'load') {
+        if (transaction['customerPays'] != null) {
+          dailyIncome += (transaction['customerPays'] as num).toDouble();
+        }
+        if (transaction['deducted'] != null) {
+          dailyExpense += (transaction['deducted'] as num).toDouble();
+        }
+      } else if (transaction['type'] == 'gcash_out') {
+        final amount = (transaction['amount'] as num).toDouble();
+        final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+        dailyIncome += amount + fee; // Total money handled
+      } else if (transaction['type'] == 'gcash_in') {
+        final amount = (transaction['amount'] as num).toDouble();
+        final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+        dailyIncome += amount + fee; // Total money handled
+      } else if (transaction['type'] == 'gcash_topup') {
+        dailyIncome += (transaction['amount'] as num).toDouble();
+      } else if (transaction['type'] == 'topup') {
+        dailyExpense += (transaction['amount'] as num).toDouble();
+      }
+    }
+    
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date header with daily summary
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[100],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.calendar_today_rounded,
+                        color: Colors.blue[700],
+                        size: 16,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dateLabel,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[800],
+                          ),
+                        ),
+                        Text(
+                          '${dateGroup.value.length} transactions',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (dailyIncome - dailyExpense) >= 0 ? Colors.green[50] : Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '₱${(dailyIncome - dailyExpense).toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: (dailyIncome - dailyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Transactions for this date
+          Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              children: dateGroup.value.map((transaction) {
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: buildTransactionCard(transaction, context),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1549,20 +1704,17 @@ class _TransactionHistoryTab extends StatelessWidget {
   Widget _buildSummaryCard(List<dynamic> transactions) {
     double totalIncome = 0;
     double totalExpense = 0;
-    double totalServiceFee = 0;
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
         if (transaction['type'] == 'gcash_out') {
-          totalIncome += (transaction['amount'] as num).toDouble();
-          if (transaction['serviceFee'] != null) {
-            totalServiceFee += (transaction['serviceFee'] as num).toDouble();
-          }
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          totalIncome += amount + fee; // Total money handled
         } else if (transaction['type'] == 'gcash_in') {
-          totalExpense += (transaction['amount'] as num).toDouble();
-          if (transaction['serviceFee'] != null) {
-            totalServiceFee += (transaction['serviceFee'] as num).toDouble();
-          }
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          totalIncome += amount + fee; // Total money handled
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1587,9 +1739,6 @@ class _TransactionHistoryTab extends StatelessWidget {
         }
       }
     }
-
-    // Calculate net based on transaction type
-    double netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -1655,7 +1804,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Net: ₱${netAmount.toStringAsFixed(2)}',
+                    'Net: ₱${(totalIncome - totalExpense).toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -1740,547 +1889,5 @@ class _TransactionHistoryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildTransactionCard(dynamic item, BuildContext context) {
-    final transactionType = item['type'];
-    final isLoad = transactionType == 'load';
-
-    if (isLoad) {
-      final date = DateTime.parse(item['date']);
-      final formattedTime = DateFormat('h:mm a').format(date);
-      final customerPays = item['customerPays'] is num ? item['customerPays'].toDouble() : 0.0;
-      final deducted = item['deducted'] is num ? item['deducted'].toDouble() : 0.0;
-      final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
-      final commission = item['commission'] is num ? item['commission'].toDouble() : 0.0;
-
-      return Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Color(0xFFF8E7FF), // Light purple/pink background to match image
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.purple[100],
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.phone_android,
-                    color: Colors.purple[700],
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Load Sale',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '+₱${customerPays.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.green[700],
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        'Profit: ₱${profit.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green[700],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 8),
-            Divider(height: 1, color: Colors.purple[200]),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Wallet Deducted:',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                ),
-                Text(
-                  '-₱${deducted.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
-                ),
-              ],
-            ),
-            SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Commission:',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                ),
-                Text(
-                  '-₱${commission.toStringAsFixed(2)}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    // For other transaction types
-    final isIncome =
-        transactionType == 'gcash_out' || transactionType == 'gcash_topup';
-
-    double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
-
-    final date = DateTime.parse(item['date']);
-    final formattedTime = DateFormat('hh:mm a').format(date);
-
-    IconData transactionIcon;
-    Color iconColor;
-    String transactionTitle;
-    Color amountColor;
-    String amountPrefix;
-
-    if (transactionType == 'gcash_in') {
-      transactionIcon = Icons.arrow_upward_rounded;
-      iconColor = Colors.red;
-      transactionTitle = 'GCash Cash In';
-      amountColor = Colors.red[700]!;
-      amountPrefix = '-';
-    } else if (transactionType == 'gcash_out') {
-      transactionIcon = Icons.arrow_downward_rounded;
-      iconColor = Colors.green;
-      transactionTitle = 'GCash Cash Out';
-      amountColor = Colors.green[700]!;
-      amountPrefix = '+';
-    } else if (transactionType == 'topup') {
-      transactionIcon = Icons.add_circle_outline_rounded;
-      iconColor = Colors.orange;
-      transactionTitle = 'Load Wallet Top-up';
-      amountColor = Colors.orange[700]!;
-      amountPrefix = '-';
-    } else if (transactionType == 'gcash_topup') {
-      transactionIcon = Icons.account_balance_wallet_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'GCash Top-up';
-      amountColor = Colors.green[700]!;
-      amountPrefix = '+';
-    } else {
-      transactionIcon = Icons.swap_horiz_rounded;
-      iconColor = Colors.purple;
-      transactionTitle = 'Transaction';
-      amountColor = Colors.black;
-      amountPrefix = '';
-    }
-
-    // Fee (serviceFee) if available
-    String? feeText;
-    if (item['serviceFee'] != null) {
-      final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-      feeText = 'Fee: ₱${fee.toStringAsFixed(2)}';
-    }
-
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            _showTransactionDetails(context, item);
-          },
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                // Icon circle
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.08),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    transactionIcon,
-                    color: iconColor,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 16),
-                // Title and time
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        transactionTitle,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Colors.grey[900],
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        formattedTime,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Amount and fee
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '$amountPrefix₱${amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: amountColor,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    if (feeText != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2.0),
-                        child: Text(
-                          feeText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[500],
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTransactionDetails(BuildContext context, dynamic transaction) {
-    final transactionType = transaction['type'];
-    final isLoad = transactionType == 'load';
-    final date = DateTime.parse(transaction['date']);
-    final formattedDate = DateFormat('MMMM dd, yyyy').format(date);
-    final formattedTime = DateFormat('hh:mm a').format(date);
-
-    IconData transactionIcon;
-    Color iconColor;
-    String transactionTitle;
-
-    if (isLoad) {
-      transactionIcon = Icons.smartphone_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'Load Sale';
-    } else if (transactionType == 'gcash_in') {
-      transactionIcon = Icons.arrow_upward_rounded;
-      iconColor = Colors.red;
-      transactionTitle = 'Cash In';
-    } else if (transactionType == 'gcash_out') {
-      transactionIcon = Icons.arrow_downward_rounded;
-      iconColor = Colors.green;
-      transactionTitle = 'Cash Out';
-    } else if (transactionType == 'topup') {
-      transactionIcon = Icons.add_circle_outline_rounded;
-      iconColor = Colors.orange;
-      transactionTitle = 'Load Wallet Top-up';
-    } else if (transactionType == 'gcash_topup') {
-      transactionIcon = Icons.account_balance_wallet_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'GCash Top-up';
-    } else {
-      transactionIcon = Icons.swap_horiz_rounded;
-      iconColor = Colors.purple;
-      transactionTitle = 'Transaction';
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.only(top: 12),
-              height: 4,
-              width: 40,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: iconColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Icon(
-                              transactionIcon,
-                              color: iconColor,
-                              size: 28,
-                            ),
-                          ),
-                          SizedBox(width: 16),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                transactionTitle,
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                              SizedBox(height: 4),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[50],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.check_circle_rounded,
-                                      size: 12,
-                                      color: Colors.green[700],
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Completed',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        color: Colors.green[700],
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 24),
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildDetailItem('Date', formattedDate,
-                                Icons.calendar_today_rounded),
-                            Divider(height: 24, color: Colors.grey[200]),
-                            _buildDetailItem('Time', formattedTime,
-                                Icons.access_time_rounded),
-                            Divider(height: 24, color: Colors.grey[200]),
-                            _buildDetailItem('Transaction ID',
-                                '#${transaction.key}', Icons.tag_rounded),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      Text(
-                        'Transaction Details',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            if (isLoad) ...[
-                              _buildDetailItem(
-                                  'Customer Pays',
-                                  '₱${transaction['customerPays'].toStringAsFixed(2)}',
-                                  Icons.payments_rounded),
-                              Divider(height: 24, color: Colors.grey[200]),
-                              _buildDetailItem(
-                                  'Wallet Deducted',
-                                  '₱${transaction['deducted'].toStringAsFixed(2)}',
-                                  Icons.remove_circle_outline_rounded),
-                              Divider(height: 24, color: Colors.grey[200]),
-                              _buildDetailItem(
-                                  'Commission',
-                                  '₱${transaction['commission'].toStringAsFixed(2)}',
-                                  Icons.monetization_on_rounded),
-                              Divider(height: 24, color: Colors.grey[200]),
-                              _buildDetailItem(
-                                  'Profit',
-                                  '₱${transaction['profit'].toStringAsFixed(2)}',
-                                  Icons.trending_up_rounded),
-                            ] else ...[
-                              _buildDetailItem(
-                                  'Amount',
-                                  '₱${transaction['amount'].toStringAsFixed(2)}',
-                                  Icons.attach_money_rounded),
-                              if (transaction['serviceFee'] != null) ...[
-                                Divider(height: 24, color: Colors.grey[200]),
-                                _buildDetailItem(
-                                    'Service Fee',
-                                    '₱${transaction['serviceFee'].toStringAsFixed(2)}',
-                                    Icons.receipt_long_rounded),
-                              ],
-                              if (transaction['totalAmount'] != null) ...[
-                                Divider(height: 24, color: Colors.grey[200]),
-                                _buildDetailItem(
-                                    'Total Amount',
-                                    '₱${transaction['totalAmount'].toStringAsFixed(2)}',
-                                    Icons.account_balance_wallet_rounded),
-                              ],
-                            ],
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Implement delete functionality
-                                Navigator.pop(context);
-                              },
-                              icon:
-                                  Icon(Icons.delete_outline_rounded, size: 18),
-                              label: Text('Delete'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[50],
-                                foregroundColor: Colors.red[700],
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailItem(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 16, color: Colors.grey[700]),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
-          ),
-        ),
-      ],
-    );
-  }
+  
 }
