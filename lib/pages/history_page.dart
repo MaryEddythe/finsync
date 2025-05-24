@@ -1704,17 +1704,14 @@ class _TransactionHistoryTab extends StatelessWidget {
   Widget _buildSummaryCard(List<dynamic> transactions) {
     double totalIncome = 0;
     double totalExpense = 0;
+    double totalServiceFee = 0;
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
-        if (transaction['type'] == 'gcash_out') {
-          final amount = (transaction['amount'] as num).toDouble();
+        if (transaction['type'] == 'gcash_out' || transaction['type'] == 'gcash_in') {
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalIncome += amount + fee; // Total money handled
-        } else if (transaction['type'] == 'gcash_in') {
-          final amount = (transaction['amount'] as num).toDouble();
-          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalIncome += amount + fee; // Total money handled
+          totalServiceFee += fee;
+          totalIncome += (transaction['amount'] as num).toDouble();
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1739,6 +1736,9 @@ class _TransactionHistoryTab extends StatelessWidget {
         }
       }
     }
+
+    // Use totalServiceFee for net in GCash tab
+    final netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -1804,7 +1804,7 @@ class _TransactionHistoryTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Net: ₱${(totalIncome - totalExpense).toStringAsFixed(2)}',
+                    'Net: ₱${netAmount.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,

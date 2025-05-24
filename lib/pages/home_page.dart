@@ -223,20 +223,19 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         final amount = double.tryParse(_amountController.text);
         if (amount != null) {
           double fee = _calculateGcashFee(amount);
-          final totalAmount = amount + fee;
           final box = Hive.box('transactions');
           
           if (_transactionType == 'gcash_in') {
-            if (_gcashBalance >= totalAmount) {
+            if (_gcashBalance >= amount) { // Check only amount, not total
               box.add({
                 'type': _transactionType,
                 'amount': amount,
                 'serviceFee': fee,
-                'totalAmount': totalAmount,
+                'totalAmount': amount + fee,
                 'date': DateTime.now().toIso8601String(),
               });
               setState(() {
-                _gcashBalance -= totalAmount;
+                _gcashBalance -= amount; // Deduct only amount, not fee
                 _monthlyIncome += amount;
                 _monthlyRevenue += fee;
               });
@@ -258,11 +257,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               'type': _transactionType,
               'amount': amount,
               'serviceFee': fee,
-              'totalAmount': totalAmount,
+              'totalAmount': amount + fee,
               'date': DateTime.now().toIso8601String(),
             });
             setState(() {
-              _gcashBalance += amount;
+              _gcashBalance += amount; // Add only amount, not total
               _monthlyIncome += amount;
               _monthlyRevenue += fee;
             });

@@ -106,31 +106,25 @@ class _WalletPageState extends State<WalletPage>
       if (tx['type'] == 'load') {
         double customerPays = (tx['customerPays'] ?? 0.0).toDouble();
         double deducted = (tx['deducted'] ?? 0.0).toDouble();
-        // Update profit calculation - it's simply customer pays minus deducted amount
         double txProfit = customerPays - deducted;
 
         revenue += customerPays;
         profit += txProfit;
 
         // Add to chart data
-        revenueByDay[daysSinceEpoch] =
-            (revenueByDay[daysSinceEpoch] ?? 0) + customerPays;
-        profitByDay[daysSinceEpoch] =
-            (profitByDay[daysSinceEpoch] ?? 0) + txProfit;
-      } else if (tx['type'] == 'gcash_in') {
+        revenueByDay[daysSinceEpoch] = (revenueByDay[daysSinceEpoch] ?? 0) + customerPays;
+        profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + txProfit;
+      } else if (tx['type'] == 'gcash_in' || tx['type'] == 'gcash_out') {
         double amount = (tx['amount'] ?? 0.0).toDouble();
+        double serviceFee = (tx['serviceFee'] ?? 0.0).toDouble();
+        
+        // Add GCash service fee to profit
+        profit += serviceFee;
+
+        // Update revenue and profit tracking
         revenue += amount;
-
-        // Add to chart data
-        revenueByDay[daysSinceEpoch] =
-            (revenueByDay[daysSinceEpoch] ?? 0) + amount;
-      } else if (tx['type'] == 'gcash_out') {
-        double amount = (tx['amount'] ?? 0.0).toDouble();
-        revenue -= amount;
-
-        // Add to chart data
-        revenueByDay[daysSinceEpoch] =
-            (revenueByDay[daysSinceEpoch] ?? 0) - amount;
+        profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + serviceFee;
+        revenueByDay[daysSinceEpoch] = (revenueByDay[daysSinceEpoch] ?? 0) + amount;
       }
     }
 
@@ -172,13 +166,43 @@ class _WalletPageState extends State<WalletPage>
     _setResponsiveValues(context);
 
     return Scaffold(
-      body: _isLoading
-          ? _buildLoadingView()
-          : OrientationBuilder(
-              builder: (context, orientation) {
-                return _buildMainView(orientation);
-              },
-            ),
+      body: RefreshIndicator(
+        onRefresh: _loadWalletData,
+        child: _isLoading
+            ? _buildLoadingView()
+            : SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    Container(
+                      color: Colors.white,
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: Color(0xFF6B48FF),
+                        unselectedLabelColor: Colors.grey[600],
+                        indicatorColor: Color(0xFF6B48FF),
+                        indicatorWeight: 3,
+                        tabs: [
+                          Tab(text: 'ANALYTICS'),
+                          Tab(text: 'TRANSACTIONS'),
+                        ],
+                      ),
+                    ),
+                    LimitedBox(
+                      maxHeight: MediaQuery.of(context).size.height,
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildAnalyticsTab(),
+                          _buildTransactionsTab(),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 
@@ -471,30 +495,6 @@ class _WalletPageState extends State<WalletPage>
               children: [
                 Expanded(
                   child: _buildBalanceCard(
-                    'GCash',
-                    _gcashBalance,
-                    Icons.account_balance_wallet,
-                  ),
-                ),
-                SizedBox(width: _adaptiveSpacing(16)),
-                Expanded(
-                  child: _buildBalanceCard(
-                    'Load Wallet',
-                    _loadWalletBalance,
-                    Icons.phone_android,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBalanceCard(String title, double amount, IconData icon) {
-    return Container(
-      padding: EdgeInsets.symmetric(
           horizontal: _adaptivePadding(16), vertical: _adaptivePadding(12)),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.2),
