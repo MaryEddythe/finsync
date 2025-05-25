@@ -1404,21 +1404,24 @@ class _TransactionHistoryTab extends StatelessWidget {
         case 'gcash_out':
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          dailyServiceFee += fee;
           if (type == 'gcash') {
-            dailyIncome += amount + fee;
+            dailyIncome += fee; // Only count service fee as income for GCash tab
           } else {
-            dailyIncome += amount + fee;
+            dailyIncome += fee;
+            dailyExpense += amount;
           }
           break;
           
         case 'gcash_in':
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          dailyServiceFee += fee;
           if (type == 'gcash') {
-            dailyExpense += amount;
-            dailyIncome += fee;
+            dailyIncome += fee; // Only count service fee as income for GCash tab
           } else {
-            dailyIncome += amount + fee;
+            dailyIncome += fee;
+            dailyExpense += amount;
           }
           break;
           
@@ -1432,6 +1435,7 @@ class _TransactionHistoryTab extends StatelessWidget {
       }
     }
 
+    // For GCash tab, show only service fees as net amount
     final dailyNet = type == 'gcash' ? dailyServiceFee : dailyIncome - dailyExpense;
     
     return Container(
@@ -1721,12 +1725,15 @@ class _TransactionHistoryTab extends StatelessWidget {
         if (transaction['type'] == 'gcash_out') {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalIncome += amount + fee; // Gcash Cash Out income includes amount + fee
+          totalServiceFee += fee;
+          totalIncome += fee; // Only fee is counted as income
+          totalExpense += amount; // The cash out amount is an expense
         } else if (transaction['type'] == 'gcash_in') {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalExpense += amount; // Gcash Cash In amount is expense (deducted from balance)
-          totalIncome += fee; // Service fee accumulated as income
+          totalServiceFee += fee;
+          totalIncome += fee; // Only fee is counted as income
+          totalExpense += amount; // The cash in amount is an expense
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1752,7 +1759,7 @@ class _TransactionHistoryTab extends StatelessWidget {
       }
     }
 
-    // For GCash tab, net amount is the accumulated service fee
+    // Calculate net amount based on transaction type
     final netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
 
     return Container(
