@@ -631,7 +631,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         Row(
                           children: [
                             Text(
-                              _selectedDate != null ? 'Daily Cash Flow' : 'Monthly Cash Flow',
+                              _selectedDate != null ? 'Daily Cash Flow' : 'Cash Flow',
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
                             ),
                             SizedBox(width: 8),
