@@ -107,8 +107,8 @@ class _ReportPageState extends State<ReportPage> {
         _totalRevenue += serviceFee;
         _totalProfit += serviceFee;
 
-        _gcashExpense += amount; // Track the cash in amount as expense
-        _addToSpots(_gcashSpots, date, amount, false); // Show as negative in chart
+        _gcashExpense += amount + serviceFee; // Track the cash in amount plus service fee as expense
+        _addToSpots(_gcashSpots, date, amount + serviceFee, false); // Show as negative in chart
 
       } else if (txType == 'gcash_out') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
@@ -118,8 +118,7 @@ class _ReportPageState extends State<ReportPage> {
         _totalRevenue += serviceFee;
         _totalProfit += serviceFee;
 
-        _gcashIncome += amount; // Track the cash out amount as income
-        _addToSpots(_gcashSpots, date, amount, true); // Show as positive in chart
+        _gcashIncome += amount + serviceFee; // Track the cash out amount plus service fee as income
       } else if (txType == 'load') {
         final customerPays = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
         final deducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
@@ -842,6 +841,23 @@ class _ReportPageState extends State<ReportPage> {
     final loadProfit = _loadIncome - _loadTopup;
     final totalProfit = _totalProfit;
 
+    // Calculate total load wallet deductions
+    double totalLoadDeductions = 0.0;
+    final transactionsBox = Hive.box('transactions');
+    final filteredTransactions = _isFilterApplied
+        ? _filterTransactionsByCustomFilters(transactionsBox.values.toList())
+        : _filterTransactionsByPeriod(transactionsBox.values.toList(), _selectedPeriod);
+
+    for (var tx in filteredTransactions) {
+      if (tx['type'] == 'load') {
+        final deducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
+        totalLoadDeductions += deducted;
+      }
+    }
+
+    // Total expenses is GCash Cash In amounts plus Load Wallet deductions
+    final totalExpenses = _gcashExpense + totalLoadDeductions;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -863,15 +879,15 @@ class _ReportPageState extends State<ReportPage> {
           child: Column(
             children: [
               _buildResponsiveRow(
-                first: _buildSummaryCard(
-                  'Total Revenue',
-                  _totalRevenue,
-                  Icons.account_balance_wallet,
-                  Colors.green.shade700,
+                 first: _buildSummaryCard(
+                  'Net Profit',
+                  totalProfit,
+                  Icons.trending_up,
+                  Colors.blue.shade700,
                 ),
                 second: _buildSummaryCard(
                   'Total Expenses',
-                  _gcashExpense + _gcashTopup + _loadTopup,
+                  totalExpenses, // Use the new calculated total
                   Icons.money_off,
                   Colors.red.shade700,
                 ),
@@ -885,13 +901,8 @@ class _ReportPageState extends State<ReportPage> {
                   Icons.phone_android,
                   Colors.purple.shade700,
                 ),
-                second: _buildSummaryCard(
-                  'Net Profit',
-                  totalProfit,
-                  Icons.trending_up,
-                  Colors.blue.shade700,
-                ),
-                spacing: _adaptiveSpacing(16),
+               
+                spacing: _adaptiveSpacing(16), second: SizedBox(),
               ),
               SizedBox(height: _adaptiveSpacing(20)),
               Container(
@@ -1119,7 +1130,7 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Widget _buildLoadSection() {
-    final loadProfit = _loadCommission; // Update this line to use only commission
+    final loadProfit = _totalProfit; // Use total profit for load transactions
     final profitMargin =
         _loadIncome > 0 ? (_loadCommission / _loadIncome * 100) : 0;
 

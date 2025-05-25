@@ -1726,13 +1726,13 @@ class _TransactionHistoryTab extends StatelessWidget {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
           totalServiceFee += fee;
-          totalIncome += fee; // Only fee is counted as income
+          totalIncome += amount + fee; // Income is Cash Out Amount + Service Fee
           totalExpense += amount; // The cash out amount is an expense
         } else if (transaction['type'] == 'gcash_in') {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
           totalServiceFee += fee;
-          totalIncome += fee; // Only fee is counted as income
+          totalIncome += amount + fee; // Income is Cash In Amount + Service Fee
           totalExpense += amount; // The cash in amount is an expense
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
