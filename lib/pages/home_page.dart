@@ -91,13 +91,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           txDate.day == today.day) {
         
         if (item['type'] == 'load') {
-          final customerPays = (item['customerPays'] as num?)?.toDouble() ?? 0.0;
-          final walletDeducted = (item['deducted'] as num?)?.toDouble() ?? 0.0;
-          final profit = (item['profit'] as num?)?.toDouble() ?? 0.0;
-
-          income += customerPays;     // Customer payment is income
-          expense += walletDeducted;  // Wallet deduction is expense
-          revenue += profit;          // Profit is revenue
+          income += (item['customerPays'] as num?)?.toDouble() ?? 0.0;
+          expense += (item['deducted'] as num?)?.toDouble() ?? 0.0;
+          revenue += (item['profit'] as num?)?.toDouble() ?? 0.0;
         } else {
           final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
           final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
@@ -350,10 +346,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           
           _amountController.clear();
           _saveBalances();
+          _calculateDailyStats(); // Add this line here too
           
+          // Hide the form after successful transaction
           setState(() {
             _showTransactionForm = false;
-            _calculateDailyStats(); // Add this line to update stats
           });
           
           ScaffoldMessenger.of(context).showSnackBar(
@@ -405,16 +402,21 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
       setState(() {
         _loadWalletBalance -= walletDeducted;
-        _monthlyIncome += customerPays;    // Total amount received from customer
-        _monthlyExpense += walletDeducted; // Amount deducted from load wallet
-        _monthlyRevenue += profit;         // Net profit from the transaction
-        _showTransactionForm = false;
-        _calculateDailyStats(); // Move this line inside setState
+        // Remove this line: _gcashBalance += customerPays;
+        _monthlyIncome += customerPays;
+        _monthlyExpense += walletDeducted; // Expense is the amount deducted from load wallet
+        _monthlyRevenue += profit;
       });
 
       _customerPaysController.clear();
       _walletDeductedController.clear();
       _saveBalances();
+      _calculateDailyStats(); // Add this line
+      
+      // Hide the form after successful transaction
+      setState(() {
+        _showTransactionForm = false;
+      });
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -613,7 +615,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Hello, User!',
+                              'Hello, Idit!',
                               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                             SizedBox(height: 4),
@@ -1209,31 +1211,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               ),
             ),
           ],
-        ),
-        SizedBox(height: 20),
-        Container(
-          padding: EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[50] : Colors.red[50],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[100] : Colors.red[100],
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  (_dailyIncome - _dailyExpense) >= 0 ? Icons.trending_up : Icons.trending_down,
-                  color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
-                  size: 20,
-                ),
-              ),
-              SizedBox(width: 12),
-            ],
-          ),
         ),
       ],
     );

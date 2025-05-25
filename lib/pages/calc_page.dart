@@ -12,7 +12,7 @@ class _CalcPageState extends State<CalcPage> {
   double _serviceFee = 0.0;
   double _totalAmount = 0.0;
   bool _showFeeTable = false;
-  final String _userName = "User"; 
+  final String _userName = "Idit"; 
   final DateTime _lastUpdated = DateTime.now();
 
   void _calculateFee() {

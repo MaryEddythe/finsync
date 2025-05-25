@@ -286,8 +286,20 @@ class _WalletPageState extends State<WalletPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildAnalyticsTab(),
-          _buildTransactionsTab(),
+          // Make analytics tab scrollable
+          SingleChildScrollView(
+            padding: EdgeInsets.zero,
+            child: _buildAnalyticsTab(),
+          ),
+          // Transactions tab: filter chips pinned, list scrolls
+          Column(
+            children: [
+              _buildFilterChips(),
+              Expanded(
+                child: _buildTransactionList(),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -537,26 +549,18 @@ class _WalletPageState extends State<WalletPage>
   }
 
   Widget _buildAnalyticsTab() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Use constraints to adapt layout based on available space
-        final availableWidth = constraints.maxWidth;
-        final isWideLayout = availableWidth > 600;
-
-        return SingleChildScrollView(
-          padding: EdgeInsets.all(_adaptivePadding(16)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSummaryCards(isWideLayout),
-              SizedBox(height: _adaptiveSpacing(24)),
-              _buildChartSection(),
-              SizedBox(height: _adaptiveSpacing(24)),
-              _buildRecentTransactionsSection(),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: EdgeInsets.all(_adaptivePadding(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSummaryCards(MediaQuery.of(context).size.width > 600),
+          SizedBox(height: _adaptiveSpacing(24)),
+          _buildChartSection(),
+          SizedBox(height: _adaptiveSpacing(24)),
+          _buildRecentTransactionsSection(),
+        ],
+      ),
     );
   }
 
