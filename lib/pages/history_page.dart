@@ -2,18 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
-import 'dart:io';
-import 'dart:convert';
-import 'package:path_provider/path_provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:open_file/open_file.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:csv/csv.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart';
-
 class HistoryPage extends StatefulWidget {
   @override
   _HistoryPageState createState() => _HistoryPageState();
@@ -445,7 +433,7 @@ class _HistoryPageState extends State<HistoryPage>
                         ),
                       ),
                 ],
-              ),
+                ),
               ],
             ),
           ),
@@ -1400,32 +1388,44 @@ class _TransactionHistoryTab extends StatelessWidget {
     // Calculate daily totals
     double dailyIncome = 0;
     double dailyExpense = 0;
+    double dailyServiceFee = 0;
     
     for (var transaction in dateGroup.value) {
-      if (transaction['type'] == 'load') {
-        if (transaction['customerPays'] != null) {
-          dailyIncome += (transaction['customerPays'] as num).toDouble();
-        }
-        if (transaction['deducted'] != null) {
-          dailyExpense += (transaction['deducted'] as num).toDouble();
-        }
-      } else if (transaction['type'] == 'gcash_out') {
-        final amount = (transaction['amount'] as num).toDouble();
-        final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        dailyIncome += amount + fee; // Total money handled
-      } else if (transaction['type'] == 'gcash_in') {
-        final amount = (transaction['amount'] as num).toDouble();
-        final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        dailyIncome += amount + fee; // Total money handled
-      } else if (transaction['type'] == 'gcash_topup') {
-        dailyIncome += (transaction['amount'] as num).toDouble();
-      } else if (transaction['type'] == 'topup') {
-        dailyExpense += (transaction['amount'] as num).toDouble();
+      switch (transaction['type']) {
+        case 'load':
+          if (transaction['customerPays'] != null) {
+            dailyIncome += (transaction['customerPays'] as num).toDouble();
+          }
+          if (transaction['deducted'] != null) {
+            dailyExpense += (transaction['deducted'] as num).toDouble();
+          }
+          break;
+          
+        case 'gcash_out':
+        case 'gcash_in':
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          if (type == 'gcash') {
+            dailyServiceFee += fee;
+          } else {
+            dailyIncome += amount + fee;
+          }
+          break;
+          
+        case 'gcash_topup':
+          dailyIncome += (transaction['amount'] as num).toDouble();
+          break;
+          
+        case 'topup':
+          dailyExpense += (transaction['amount'] as num).toDouble();
+          break;
       }
     }
+
+    final dailyNet = type == 'gcash' ? dailyServiceFee : dailyIncome - dailyExpense;
     
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1488,17 +1488,17 @@ class _TransactionHistoryTab extends StatelessWidget {
                   ],
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: (dailyIncome - dailyExpense) >= 0 ? Colors.green[50] : Colors.red[50],
+                    color: dailyNet >= 0 ? Colors.green[50] : Colors.red[50],
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '₱${(dailyIncome - dailyExpense).toStringAsFixed(2)}',
+                    '₱${dailyNet.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: (dailyIncome - dailyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
+                      color: dailyNet >= 0 ? Colors.green[700] : Colors.red[700],
                     ),
                   ),
                 ),
@@ -1509,7 +1509,7 @@ class _TransactionHistoryTab extends StatelessWidget {
           Padding(
             padding: EdgeInsets.all(12),
             child: Column(
-              children: dateGroup.value.map((transaction) {
+              children: dateGroup.value.map<Widget>((transaction) {
                 return Padding(
                   padding: EdgeInsets.only(bottom: 8),
                   child: buildTransactionCard(transaction, context),
@@ -1708,15 +1708,11 @@ class _TransactionHistoryTab extends StatelessWidget {
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
-        if (transaction['type'] == 'gcash_out') {
+        if (transaction['type'] == 'gcash_out' || transaction['type'] == 'gcash_in') {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalIncome += amount + fee; // Total income includes amount and fee
-        } else if (transaction['type'] == 'gcash_in') {
-          final amount = (transaction['amount'] as num).toDouble();
-          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalExpense += amount; // Cash in amount is expense
-          totalIncome += fee; // Service fee is income
+          totalIncome += amount + fee; // Total transaction amount + service fee
+          totalServiceFee += fee; // Accumulate service fee
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
@@ -1742,11 +1738,11 @@ class _TransactionHistoryTab extends StatelessWidget {
       }
     }
 
-    // Calculate net amount based on type
-    final netAmount = totalIncome - totalExpense;
+    // For GCash tab, net amount is the accumulated service fee
+    final netAmount = type == 'gcash' ? totalServiceFee : totalIncome - totalExpense;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
