@@ -41,7 +41,12 @@ class FinSyncApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      
+      theme: ThemeData(
+        primarySwatch: Colors.green,
+        fontFamily: 'Poppins',
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        useMaterial3: true,
+      ),
       home: BottomNavPage(),
     );
   }
