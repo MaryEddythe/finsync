@@ -1402,11 +1402,21 @@ class _TransactionHistoryTab extends StatelessWidget {
           break;
           
         case 'gcash_out':
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          if (type == 'gcash') {
+            dailyIncome += amount + fee;
+          } else {
+            dailyIncome += amount + fee;
+          }
+          break;
+          
         case 'gcash_in':
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
           if (type == 'gcash') {
-            dailyServiceFee += fee;
+            dailyExpense += amount;
+            dailyIncome += fee;
           } else {
             dailyIncome += amount + fee;
           }
@@ -1708,11 +1718,15 @@ class _TransactionHistoryTab extends StatelessWidget {
 
     for (var transaction in transactions) {
       if (type == 'gcash' || type == 'all') {
-        if (transaction['type'] == 'gcash_out' || transaction['type'] == 'gcash_in') {
+        if (transaction['type'] == 'gcash_out') {
           final amount = (transaction['amount'] as num).toDouble();
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          totalIncome += amount + fee; // Total transaction amount + service fee
-          totalServiceFee += fee; // Accumulate service fee
+          totalIncome += amount + fee; // Gcash Cash Out income includes amount + fee
+        } else if (transaction['type'] == 'gcash_in') {
+          final amount = (transaction['amount'] as num).toDouble();
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          totalExpense += amount; // Gcash Cash In amount is expense (deducted from balance)
+          totalIncome += fee; // Service fee accumulated as income
         } else if (transaction['type'] == 'gcash_topup') {
           totalIncome += (transaction['amount'] as num).toDouble();
         }
