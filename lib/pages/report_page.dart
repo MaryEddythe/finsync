@@ -103,24 +103,23 @@ class _ReportPageState extends State<ReportPage> {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         final serviceFee = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
 
-        _gcashExpense += amount;
-
-        // Revenue for GCash is the service fee
+        // For GCash, only count service fee as revenue/profit
         _totalRevenue += serviceFee;
         _totalProfit += serviceFee;
 
-        _addToSpots(_gcashSpots, date, amount, false);
+        _gcashExpense += amount; // Track the cash in amount as expense
+        _addToSpots(_gcashSpots, date, amount, false); // Show as negative in chart
+
       } else if (txType == 'gcash_out') {
         final amount = (tx['amount'] as num?)?.toDouble() ?? 0.0;
         final serviceFee = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
 
-        _gcashIncome += amount;
-
-        // Revenue for GCash is the service fee
+        // For GCash, only count service fee as revenue/profit
         _totalRevenue += serviceFee;
         _totalProfit += serviceFee;
 
-        _addToSpots(_gcashSpots, date, amount, true);
+        _gcashIncome += amount; // Track the cash out amount as income
+        _addToSpots(_gcashSpots, date, amount, true); // Show as positive in chart
       } else if (txType == 'load') {
         final customerPays = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
         final deducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
@@ -1048,7 +1047,20 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Widget _buildGCashSection() {
-    final gcashProfit = _gcashIncome - _gcashExpense;
+    // Calculate net profit as total service fees
+    double gcashServiceFees = 0.0;
+    
+    final transactionsBox = Hive.box('transactions');
+    final filteredTransactions = _isFilterApplied
+        ? _filterTransactionsByCustomFilters(transactionsBox.values.toList())
+        : _filterTransactionsByPeriod(transactionsBox.values.toList(), _selectedPeriod);
+
+    for (var tx in filteredTransactions) {
+      if (tx['type'] == 'gcash_in' || tx['type'] == 'gcash_out') {
+        final serviceFee = (tx['serviceFee'] as num?)?.toDouble() ?? 0.0;
+        gcashServiceFees += serviceFee;
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1072,16 +1084,16 @@ class _ReportPageState extends State<ReportPage> {
             children: [
               _buildResponsiveRow(
                 first: _buildMetricCard(
-                  'Cash Out (Revenue)',
-                  _gcashIncome,
-                  Icons.arrow_downward,
-                  Colors.green.shade700,
-                ),
-                second: _buildMetricCard(
-                  'Cash In (Expense)',
+                  'Cash In',
                   _gcashExpense,
                   Icons.arrow_upward,
-                  Colors.red.shade700,
+                  Colors.red[700]!,
+                ),
+                second: _buildMetricCard(
+                  'Cash Out',
+                  _gcashIncome,
+                  Icons.arrow_downward,
+                  Colors.green[700]!,
                 ),
                 spacing: _adaptiveSpacing(16),
               ),
@@ -1091,15 +1103,13 @@ class _ReportPageState extends State<ReportPage> {
                   'GCash Topup',
                   _gcashTopup,
                   Icons.add_circle_outline,
-                  Colors.blue.shade700,
+                  Colors.blue[700]!,
                 ),
                 second: _buildMetricCard(
                   'Net Profit',
-                  gcashProfit,
+                  gcashServiceFees, // Use accumulated service fees for net profit
                   Icons.account_balance_wallet,
-                  gcashProfit >= 0
-                      ? Colors.green.shade700
-                      : Colors.red.shade700,
+                  Colors.green[700]!,
                 ),
                 spacing: _adaptiveSpacing(16),
               ),
