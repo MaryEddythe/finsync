@@ -123,18 +123,14 @@ class _ReportPageState extends State<ReportPage> {
       } else if (txType == 'load') {
         final customerPays = (tx['customerPays'] as num?)?.toDouble() ?? 0.0;
         final deducted = (tx['deducted'] as num?)?.toDouble() ?? 0.0;
-
-        // Calculate Maya commission
-        final mayaCommission = deducted * _mayaCommissionRate;
-
-        // Calculate profit as Maya commission + fixed markup
-        final profit = _fixedMarkup + mayaCommission;
+        final commission = (tx['commission'] as num?)?.toDouble() ?? 0.0;
+        final profit = (tx['profit'] as num?)?.toDouble() ?? 0.0;
 
         _loadIncome += customerPays;
-        _loadCommission += profit;
+        _loadCommission += commission;
 
-        // Revenue for Load is Maya commission + fixed markup
-        _totalRevenue += profit;
+        // For Load transactions, revenue is service fee (commission)
+        _totalRevenue += commission;
         _totalProfit += profit;
 
         _addToSpots(_loadSpots, date, customerPays, true);
@@ -1123,7 +1119,7 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Widget _buildLoadSection() {
-    final loadProfit = _loadIncome - _loadTopup + _loadCommission;
+    final loadProfit = _loadCommission; // Update this line to use only commission
     final profitMargin =
         _loadIncome > 0 ? (_loadCommission / _loadIncome * 100) : 0;
 
@@ -1149,7 +1145,7 @@ class _ReportPageState extends State<ReportPage> {
             children: [
               _buildResponsiveRow(
                 first: _buildMetricCard(
-                  'Sales Revenue',
+                  'Income',
                   _loadIncome,
                   Icons.shopping_cart,
                   Colors.green.shade700,
