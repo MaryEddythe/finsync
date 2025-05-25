@@ -44,6 +44,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   double _monthlyIncome = 0.0;
   double _monthlyExpense = 0.0;
   double _monthlyRevenue = 0.0;
+  double _dailyIncome = 0.0;
+  double _dailyExpense = 0.0;
+  double _dailyRevenue = 0.0;
   bool _balancesLoaded = false;
   late AnimationController _refreshController;
   late Animation<double> _refreshAnimation;
@@ -55,7 +58,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   bool _showTransactionForm = false;
 
   DateTime? _selectedDate;
-  bool _showAllTransactions = false; // New state for showing all transactions
 
   @override
   void initState() {
@@ -67,20 +69,57 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     _refreshAnimation = CurvedAnimation(parent: _refreshController, curve: Curves.easeInOut);
     _customerPaysController.addListener(_autoCalculateWalletDeducted);
     _loadBalances();
+    _calculateDailyStats(); // Add this line
   }
 
-  // Function to scroll to the transaction form
-  void _scrollToTransactionForm() {
-    // Add a small delay to ensure the widget is rendered
-    Future.delayed(Duration(milliseconds: 300), () {
-      if (_transactionFormKey.currentContext != null) {
-        Scrollable.ensureVisible(
-          _transactionFormKey.currentContext!,
-          duration: Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-          alignment: 0.0, // Align at the top of the viewport
-        );
+  // Add this method to calculate daily stats
+  void _calculateDailyStats() {
+    final box = Hive.box('transactions');
+    final today = DateTime.now();
+    final List items = box.values.toList();
+
+    double income = 0.0;
+    double expense = 0.0;
+    double revenue = 0.0;
+
+    for (var item in items) {
+      if (item['date'] == null) continue;
+      
+      final txDate = DateTime.parse(item['date']);
+      if (txDate.year == today.year && 
+          txDate.month == today.month && 
+          txDate.day == today.day) {
+        
+        if (item['type'] == 'load') {
+          final customerPays = (item['customerPays'] as num?)?.toDouble() ?? 0.0;
+          final walletDeducted = (item['deducted'] as num?)?.toDouble() ?? 0.0;
+          final profit = (item['profit'] as num?)?.toDouble() ?? 0.0;
+
+          income += customerPays;     // Customer payment is income
+          expense += walletDeducted;  // Wallet deduction is expense
+          revenue += profit;          // Profit is revenue
+        } else {
+          final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+          final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          
+          if (item['type'] == 'gcash_out') {
+            income += amount;
+            revenue += fee;
+          } else if (item['type'] == 'gcash_in') {
+            income += (amount + fee); // Daily income is total received
+            expense += amount;        // Daily expense is amount transferred out
+            revenue += fee;           // Daily revenue is the service fee (profit)
+          } else if (item['type'] == 'topup') {
+            expense += amount;
+          }
+        }
       }
+    }
+
+    setState(() {
+      _dailyIncome = income;
+      _dailyExpense = expense;
+      _dailyRevenue = revenue;
     });
   }
 
@@ -236,8 +275,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               });
               setState(() {
                 _gcashBalance -= amount; // Deduct only amount, not fee
-                _monthlyIncome += amount;
-                _monthlyRevenue += fee;
+                _monthlyIncome += (amount + fee); // Total cash received from customer
+                _monthlyExpense += amount;        // Cost of service (GCash sent)
+                _monthlyRevenue += fee;           // Fee is the profit/revenue
               });
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -311,9 +351,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           _amountController.clear();
           _saveBalances();
           
-          // Hide the form after successful transaction
           setState(() {
             _showTransactionForm = false;
+            _calculateDailyStats(); // Add this line to update stats
           });
           
           ScaffoldMessenger.of(context).showSnackBar(
@@ -365,19 +405,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
       setState(() {
         _loadWalletBalance -= walletDeducted;
-        // Remove this line: _gcashBalance += customerPays;
-        _monthlyIncome += customerPays;
-        _monthlyRevenue += profit;
+        _monthlyIncome += customerPays;    // Total amount received from customer
+        _monthlyExpense += walletDeducted; // Amount deducted from load wallet
+        _monthlyRevenue += profit;         // Net profit from the transaction
+        _showTransactionForm = false;
+        _calculateDailyStats(); // Move this line inside setState
       });
 
       _customerPaysController.clear();
       _walletDeductedController.clear();
       _saveBalances();
-      
-      // Hide the form after successful transaction
-      setState(() {
-        _showTransactionForm = false;
-      });
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -406,51 +443,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
   }
 
-  // Calculate daily statistics for selected date
-  Map<String, double> _calculateDailyStats(DateTime date, List items) {
-    double income = 0.0;
-    double expense = 0.0;
-    double revenue = 0.0;
-    
-    final dayTransactions = items.where((item) {
-      if (item['date'] == null) return false;
-      final txDate = DateTime.parse(item['date']);
-      return txDate.year == date.year &&
-             txDate.month == date.month &&
-             txDate.day == date.day;
-    }).toList();
-    
-    for (var item in dayTransactions) {
-      if (item['type'] == 'load') {
-        income += (item['customerPays'] as num?)?.toDouble() ?? 0.0;
-        expense += (item['deducted'] as num?)?.toDouble() ?? 0.0;
-        revenue += (item['profit'] as num?)?.toDouble() ?? 0.0;
-      } else {
-        final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
-        final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        
-        if (item['type'] == 'gcash_out') {
-          income += amount;
-          revenue += fee;
-        } else if (item['type'] == 'gcash_in') {
-          expense += amount;
-          revenue += fee;
-        } else if (item['type'] == 'topup') {
-          expense += amount;
-        } else if (item['type'] == 'gcash_topup') {
-          income += amount;
-        }
-      }
-    }
-    
-    return {
-      'income': income,
-      'expense': expense,
-      'revenue': revenue,
-      'netCashFlow': income - expense,
-      'transactionCount': dayTransactions.length.toDouble(),
-    };
-  }
 
   @override
   void dispose() {
@@ -465,6 +457,88 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
+  void _scrollToTransactionForm() {
+    // Wait for the next frame to ensure the form is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_transactionFormKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          _transactionFormKey.currentContext!,
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.green[700],
+      elevation: 0,
+      title: Text(
+        'GCash & Load Tracker',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh, color: Colors.white),
+          onPressed: _loadBalances,
+          tooltip: 'Refresh data',
+        ),
+        IconButton(
+          icon: Icon(Icons.edit, color: Colors.white),
+          onPressed: _editBalances,
+          tooltip: 'Edit balances',
+        ),
+      ],
+    );
+  }
+
+  void _calculateStatsForDate(DateTime date) {
+    final box = Hive.box('transactions');
+    final List items = box.values.toList();
+
+    double income = 0.0;
+    double expense = 0.0;
+    double revenue = 0.0;
+
+    for (var item in items) {
+      if (item['date'] == null) continue;
+      
+      final txDate = DateTime.parse(item['date']);
+      if (txDate.year == date.year && 
+          txDate.month == date.month && 
+          txDate.day == date.day) {
+        
+        if (item['type'] == 'load') {
+          income += (item['customerPays'] as num?)?.toDouble() ?? 0.0;
+          expense += (item['deducted'] as num?)?.toDouble() ?? 0.0;
+          revenue += (item['profit'] as num?)?.toDouble() ?? 0.0;
+        } else {
+          final amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
+          final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
+          
+          if (item['type'] == 'gcash_out') {
+            income += amount;
+            revenue += fee;
+          } else if (item['type'] == 'gcash_in') {
+            income += (amount + fee); // Income for the selected date is total received
+            expense += amount;        // Expense for the selected date is amount transferred out
+            revenue += fee;           // Revenue for the selected date is the service fee (profit)
+          } else if (item['type'] == 'topup') {
+            expense += amount;
+          }
+        }
+      }
+    }
+
+    setState(() {
+      _dailyIncome = income;
+      _dailyExpense = expense;
+      _dailyRevenue = revenue;
+    });
+  }
+
+  // Update the build method to use the new AppBar
   @override
   Widget build(BuildContext context) {
     if (!_balancesLoaded) {
@@ -481,33 +555,14 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         ),
       );
     }
-    
+
     final now = DateTime.now();
     final formatter = DateFormat('MMMM dd, yyyy');
     final timeFormatter = DateFormat('hh:mm a');
     
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        backgroundColor: Colors.green[700],
-        elevation: 0,
-        title: Text(
-          'GCash & Load Tracker',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadBalances,
-            tooltip: 'Refresh data',
-          ),
-          IconButton(
-            icon: Icon(Icons.edit, color: Colors.white),
-            onPressed: _editBalances,
-            tooltip: 'Edit balances',
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           setState(() {
@@ -628,280 +683,65 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Expanded(
+                          child: Text(
+                            _selectedDate == null
+                                ? 'Today\'s Cash Flow'
+                                : 'Cash Flow for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                          ),
+                        ),
                         Row(
                           children: [
-                            Text(
-                              _selectedDate != null ? 'Daily Cash Flow' : 'Cash Flow',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-                            ),
-                            SizedBox(width: 8),
                             IconButton(
-                              icon: Icon(Icons.calendar_today_rounded, color: Colors.green[700], size: 20),
-                              tooltip: 'Pick a date',
+                              icon: Icon(Icons.calendar_today, color: Colors.green[700]),
                               onPressed: () async {
-                                DateTime now = DateTime.now();
                                 final picked = await showDatePicker(
                                   context: context,
-                                  initialDate: _selectedDate ?? now,
-                                  firstDate: DateTime(now.year - 2),
-                                  lastDate: DateTime(now.year + 1),
+                                  initialDate: _selectedDate ?? DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime.now(),
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: ColorScheme.light(
+                                          primary: Colors.green[700]!,
+                                          onPrimary: Colors.white,
+                                          surface: Colors.white,
+                                          onSurface: Colors.black,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
                                 );
                                 if (picked != null) {
                                   setState(() {
                                     _selectedDate = picked;
+                                    _calculateStatsForDate(_selectedDate!);
                                   });
                                 }
                               },
-                              padding: EdgeInsets.zero,
-                              constraints: BoxConstraints(),
+                              tooltip: 'Select Date',
                             ),
                             if (_selectedDate != null)
                               IconButton(
-                                icon: Icon(Icons.clear, color: Colors.red[400], size: 18),
-                                tooltip: 'Clear date filter',
+                                icon: Icon(Icons.close, color: Colors.red[700]),
                                 onPressed: () {
                                   setState(() {
                                     _selectedDate = null;
+                                    _calculateDailyStats(); // Recalculate for today
                                   });
                                 },
-                                padding: EdgeInsets.zero,
-                                constraints: BoxConstraints(),
+                                tooltip: 'Clear Date Filter',
                               ),
                           ],
                         ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _selectedDate != null
-                              ? DateFormat('MMMM d, yyyy').format(_selectedDate!)
-                              : DateFormat('MMMM yyyy').format(now),
-                            style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w500, fontSize: 12),
-                          ),
-                        ),
                       ],
                     ),
-                    SizedBox(height: 20),
-                    // Show daily stats if date is selected, otherwise monthly stats
-                    ValueListenableBuilder(
-                      valueListenable: Hive.box('transactions').listenable(),
-                      builder: (context, box, _) {
-                        if (_selectedDate != null) {
-                          final stats = _calculateDailyStats(_selectedDate!, box.values.toList());
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Income',
-                                      amount: stats['income']!,
-                                      icon: Icons.arrow_downward,
-                                      isIncome: true,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Expense',
-                                      amount: stats['expense']!,
-                                      icon: Icons.arrow_upward,
-                                      isIncome: false,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Revenue',
-                                      amount: stats['revenue']!,
-                                      icon: Icons.trending_up,
-                                      isIncome: true,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                              Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: stats['netCashFlow']! >= 0 ? Colors.green[50] : Colors.red[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: stats['netCashFlow']! >= 0 ? Colors.green[100] : Colors.red[100],
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        stats['netCashFlow']! >= 0 ? Icons.trending_up : Icons.trending_down,
-                                        color: stats['netCashFlow']! >= 0 ? Colors.green[700] : Colors.red[700],
-                                        size: 20,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Net Cash Flow',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[700],
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            '₱${stats['netCashFlow']!.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: stats['netCashFlow']! >= 0 ? Colors.green[700] : Colors.red[700],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Transactions',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          '${stats['transactionCount']!.toInt()}',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.grey[800],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          // Show monthly stats
-                          return Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Income',
-                                      amount: _monthlyIncome,
-                                      icon: Icons.arrow_downward,
-                                      isIncome: true,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Expense',
-                                      amount: _monthlyExpense,
-                                      icon: Icons.arrow_upward,
-                                      isIncome: false,
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: _buildCashFlowItem(
-                                      title: 'Revenue',
-                                      amount: _monthlyRevenue,
-                                      icon: Icons.trending_up,
-                                      isIncome: true,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                              Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[50] : Colors.red[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[100] : Colors.red[100],
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        (_monthlyIncome - _monthlyExpense) >= 0 ? Icons.trending_up : Icons.trending_down,
-                                        color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
-                                        size: 20,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Net Cash Flow',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.grey[700],
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            '₱${(_monthlyIncome - _monthlyExpense).toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                              color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Profit Margin',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          _monthlyIncome > 0
-                                              ? '${((_monthlyIncome - _monthlyExpense) / _monthlyIncome * 100).toStringAsFixed(1)}%'
-                                              : '0.0%',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: (_monthlyIncome - _monthlyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                      },
-                    ),
+                    SizedBox(height: 16),
+                    // Show daily stats
+                    _buildCashFlowSection(),
                   ],
                 ),
               ),
@@ -1174,34 +1014,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          _selectedDate != null 
-                            ? 'Transactions for ${DateFormat('MMM d, yyyy').format(_selectedDate!)}'
-                            : (_showAllTransactions ? 'All Transactions' : 'Recent History'),
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-                        ),
-                        if (_selectedDate == null)
-                          TextButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                _showAllTransactions = !_showAllTransactions;
-                              });
-                            },
-                            icon: Icon(
-                              _showAllTransactions ? Icons.today : Icons.history, 
-                              size: 16, 
-                              color: Colors.green[700]
-                            ),
-                            label: Text(
-                              _showAllTransactions ? 'Today Only' : 'View All',
-                              style: TextStyle(color: Colors.green[700], fontSize: 14, fontWeight: FontWeight.w500),
-                            ),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.green[700],
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              backgroundColor: Colors.green[50],
-                            ),
+                        Expanded(
+                          child: Text(
+                            _selectedDate != null
+                                ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
+                                : 'Today\'s Transactions',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                          ),
                           ),
                       ],
                     ),
@@ -1214,7 +1033,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
       ),
-    );
+      );
   }
 
   Widget _buildDropdownItem(IconData icon, String text) {
@@ -1310,39 +1129,22 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     return ValueListenableBuilder(
       valueListenable: Hive.box('transactions').listenable(),
       builder: (context, box, _) {
-        final today = DateTime.now();
-        List items = box.values.toList().reversed.toList();
-
-        // Filter logic based on current state
-        if (_selectedDate != null) {
-          // Show only transactions for the selected date
-          items = items.where((item) {
-            if (item['date'] == null) return false;
-            final txDate = DateTime.parse(item['date']);
-            return txDate.year == _selectedDate!.year &&
-                   txDate.month == _selectedDate!.month &&
-                   txDate.day == _selectedDate!.day;
-          }).toList();
-        } else if (!_showAllTransactions) {
-          // Show only today's transactions by default
-          items = items.where((item) {
-            if (item['date'] == null) return false;
-            final txDate = DateTime.parse(item['date']);
-            return txDate.year == today.year &&
-                   txDate.month == today.month &&
-                   txDate.day == today.day;
-          }).toList();
-        }
+        final dateToFilter = _selectedDate ?? DateTime.now();
+        final items = box.values.toList().reversed.where((item) {
+          if (item['date'] == null) return false;
+          final txDate = DateTime.parse(item['date']);
+          return txDate.year == dateToFilter.year &&
+                 txDate.month == dateToFilter.month &&
+                 txDate.day == dateToFilter.day;
+        }).toList();
 
         if (items.isEmpty) {
-          String emptyMessage;
-          if (_selectedDate != null) {
-            emptyMessage = 'No transactions for this date';
-          } else if (!_showAllTransactions) {
-            emptyMessage = 'No transactions today';
-          } else {
-            emptyMessage = 'No transactions yet';
-          }
+          String dateString = _selectedDate == null 
+            ? "today" 
+            : "for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}";
+          String subMessage = _selectedDate == null
+            ? "Your today's transactions will appear here"
+            : "Transactions for this date will appear here";
 
           return Container(
             padding: EdgeInsets.symmetric(vertical: 30),
@@ -1351,16 +1153,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
                 SizedBox(height: 16),
                 Text(
-                  emptyMessage,
+                  'No transactions $dateString',
                   style: TextStyle(color: Colors.grey[500], fontSize: 16),
                 ),
                 SizedBox(height: 8),
-                Text(
-                  _selectedDate != null
-                    ? 'Pick another date or clear the filter'
-                    : (!_showAllTransactions 
-                        ? 'Your today\'s transactions will appear here'
-                        : 'Your transactions will appear here'),
+                Text(subMessage,
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
               ],
@@ -1368,71 +1165,80 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           );
         }
 
-        if (_showAllTransactions && _selectedDate == null) {
-          // Group transactions by date when showing all
-          Map<String, List> groupedTransactions = {};
-          
-          for (var item in items) {
-            if (item['date'] == null) continue;
-            
-            final txDate = DateTime.parse(item['date']);
-            final dateKey = DateFormat('yyyy-MM-dd').format(txDate);
-            
-            if (!groupedTransactions.containsKey(dateKey)) {
-              groupedTransactions[dateKey] = [];
+        return Column(
+          children: items.map((item) {
+            if (item['type'] == 'load') {
+              return _buildLoadTransactionItem(item);
+            } else {
+              return _buildTransactionItem(item);
             }
-            
-            groupedTransactions[dateKey]!.add(item);
-          }
-
-          // Sort dates in descending order
-          final sortedDates = groupedTransactions.keys.toList()
-            ..sort((a, b) => b.compareTo(a));
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var dateKey in sortedDates) ...[
-                _buildDateHeader(dateKey, today),
-                SizedBox(height: 12),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    children: groupedTransactions[dateKey]!.map((item) {
-                      if (item['type'] == 'load') {
-                        return _buildLoadTransactionItem(item);
-                      } else {
-                        return _buildTransactionItem(item);
-                      }
-                    }).toList(),
-                  ),
-                ),
-                SizedBox(height: 16),
-              ],
-            ],
-          );
-        } else {
-          // Show transactions without date grouping (for today only or selected date)
-          return Column(
-            children: items.map((item) {
-              if (item['type'] == 'load') {
-                return _buildLoadTransactionItem(item);
-              } else {
-                return _buildTransactionItem(item);
-              }
-            }).toList(),
-          );
-        }
+          }).toList(),
+        );
       },
     );
   }
 
-  // Add this new method to create date headers
+  // Update the Cash Flow section in build method
+  Widget _buildCashFlowSection() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildCashFlowItem(
+                title: 'Income',
+                amount: _dailyIncome,
+                icon: Icons.arrow_downward,
+                isIncome: true,
+              ),
+            ),
+            Expanded(
+              child: _buildCashFlowItem(
+                title: 'Expense',
+                amount: _dailyExpense,
+                icon: Icons.arrow_upward,
+                isIncome: false,
+              ),
+            ),
+            Expanded(
+              child: _buildCashFlowItem(
+                title: 'Revenue',
+                amount: _dailyRevenue,
+                icon: Icons.trending_up,
+                isIncome: true,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+        Container(
+          padding: EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[50] : Colors.red[50],
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[100] : Colors.red[100],
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  (_dailyIncome - _dailyExpense) >= 0 ? Icons.trending_up : Icons.trending_down,
+                  color: (_dailyIncome - _dailyExpense) >= 0 ? Colors.green[700] : Colors.red[700],
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: 12),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDateHeader(String dateKey, DateTime today) {
     final txDate = DateTime.parse(dateKey);
     String headerText;
