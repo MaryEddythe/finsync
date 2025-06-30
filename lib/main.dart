@@ -43,7 +43,7 @@ class FinSyncApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(
         primarySwatch: Colors.green,
-        fontFamily: 'Poppins',
+        fontFamily: 'Gotham',
         visualDensity: VisualDensity.adaptivePlatformDensity,
         useMaterial3: true,
       ),

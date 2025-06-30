@@ -287,7 +287,11 @@ class _WalletPageState extends State<WalletPage>
         controller: _tabController,
         children: [
           // Make analytics tab scrollable
+          // Apply primary: false and ClampingScrollPhysics for better coordination
+          // with NestedScrollView.
           SingleChildScrollView(
+            primary: false,
+            physics: const ClampingScrollPhysics(),
             padding: EdgeInsets.zero,
             child: _buildAnalyticsTab(),
           ),
