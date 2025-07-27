@@ -36,9 +36,9 @@ class _CalcPageState extends State<CalcPage> {
     } else if (amount <= 1000) {
       fee = 25;
     } else if (amount <= 1500) {
-      fee = 35;
+      fee = 30;
     } else if (amount <= 2000) {
-      fee = 45;
+      fee = 40;
     } else if (amount <= 2500) {
       fee = 50;
     } else if (amount <= 3000) {

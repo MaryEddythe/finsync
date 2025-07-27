@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import '../theme/app_theme.dart';
+import '../components/modern_filter_bar.dart';
+import '../components/modern_segmented_filter.dart';
+import '../utils/animations.dart';
 
 class HistoryPage extends StatefulWidget {
   @override
@@ -49,14 +53,14 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.backgroundPrimary,
       body: SafeArea(
         child: Column(
           children: [
             _buildHeader(),
             if (!_isSearching) _buildBalanceCard(),
             if (!_isSearching) _buildTabBar(),
-            if (!_isSearching) _buildFilterChips(),
+            if (!_isSearching) _buildModernFilterBar(),
             if (!_isSearching && _isFilterApplied)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -155,34 +159,76 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryColor, AppTheme.primaryColor.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.filter_list_rounded,
-                    color: Colors.green[700], size: 24),
-                onPressed: () {
-                  _showFilterOptions();
-                },
-                splashRadius: 24,
-                tooltip: 'Advanced filters',
-              ),
-            ],
-          ),
-        ],
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Transaction History',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Track your financial activity',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isSearching = !_isSearching;
+                    });
+                  },
+                  tooltip: 'Search transactions',
+                ),
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                  ),
+                  onPressed: _showFilterOptions,
+                  tooltip: 'Advanced filters',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -834,57 +880,79 @@ class _HistoryPageState extends State<HistoryPage>
     );
   }
 
-  Widget _buildFilterChips() {
-    return Container(
-      height: 40,
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _periods.length,
-        itemBuilder: (context, index) {
-          final period = _periods[index];
-          final isSelected = period == _selectedPeriod;
+  Widget _buildModernFilterBar() {
+    return Column(
+      children: [
+        // Main transaction type filter
+        PillFilterNavigation(
+          options: _filterTypes,
+          selectedOption: _filterType,
+          onChanged: (type) {
+            setState(() {
+              _filterType = type;
+              _isFilterApplied = true;
+            });
+          },
+        ),
+        // Period filter chips
+        Container(
+          height: 50,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _periods.length,
+            itemBuilder: (context, index) {
+              final period = _periods[index];
+              final isSelected = period == _selectedPeriod;
 
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedPeriod = period;
-              });
-            },
-            child: Container(
-              margin: EdgeInsets.only(right: 8),
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.green.shade700 : Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color:
-                      isSelected ? Colors.green.shade700 : Colors.grey.shade300,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.green.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+              return AnimationUtils.slideInFromBottom(
+                duration: Duration(milliseconds: 300 + (index * 50)),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedPeriod = period;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.accentColor : AppTheme.surfaceColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? AppTheme.accentColor : Colors.grey.shade300,
+                        width: isSelected ? 2 : 1,
+                      ),
+                      boxShadow: isSelected ? AppTheme.softShadow : null,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelected) ...[
+                          Icon(
+                            Icons.schedule_rounded,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          period,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AppTheme.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
                         ),
-                      ]
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  period,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey.shade700,
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -1004,59 +1072,18 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                           ),
                           SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _filterTypes.map((type) {
-                              return GestureDetector(
-                                onTap: () {
-                                  setModalState(() {
-                                    tempType = type;
-                                  });
-                                },
-                                child: _buildFilterChip(type, type == tempType),
-                              );
-                            }).toList(),
-                          ),
-                          SizedBox(height: 24),
-                          Text(
-                            'Amount Range',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade800,
+                          SizedBox(
+                            height: 80,
+                            child: ModernTransactionFilterBar(
+                              filterTypes: _filterTypes,
+                              selectedFilter: tempType,
+                              onFilterChanged: (type) {
+                                setModalState(() {
+                                  tempType = type;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
                             ),
-                          ),
-                          SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildAmountField('Min: ₱${tempMin.toStringAsFixed(0)}'),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: _buildAmountField('Max: ₱${tempMax.toStringAsFixed(0)}'),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          RangeSlider(
-                            values: RangeValues(tempMin, tempMax),
-                            min: 0,
-                            max: 10000,
-                            divisions: 100,
-                            labels: RangeLabels(
-                              '₱${tempMin.toStringAsFixed(0)}',
-                              '₱${tempMax.toStringAsFixed(0)}',
-                            ),
-                            onChanged: (RangeValues values) {
-                              setModalState(() {
-                                tempMin = values.start;
-                                tempMax = values.end;
-                              });
-                            },
-                            activeColor: Colors.green[700],
-                            inactiveColor: Colors.grey[300],
                           ),
                           SizedBox(height: 32),
                           Row(

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../theme/app_theme.dart';
+import '../components/modern_card.dart';
+import '../utils/animations.dart';
 
 class WalletPage extends StatefulWidget {
   @override
@@ -36,34 +39,31 @@ class _WalletPageState extends State<WalletPage>
   late EdgeInsets systemPadding;
 
   double _adaptiveFontSize(double value) {
-    // Adjust font size based on textScaleFactor for accessibility
     return value * (textScaleFactor.clamp(0.8, 1.5));
   }
 
   double _adaptiveSpacing(double value) {
-    // You can adjust the scaling logic as needed for your app
     return value * (textScaleFactor.clamp(0.8, 1.2));
   }
 
   double _adaptiveRadius(double value) {
-    // Adjust border radius based on textScaleFactor or screen size
     return value * (textScaleFactor.clamp(0.8, 1.2));
   }
 
   double _adaptiveHeight(double value) {
-    return value * (screenHeight / 800); // Base height of 800
+    return value * (screenHeight / 800);
   }
 
   double _adaptiveSize(double value) {
-    return value * (screenWidth / 400); // Base width of 400
+    return value * (screenWidth / 400);
   }
 
   double _adaptiveIconSize(double value) {
-    return value * (screenWidth / 400); // Base width of 400
+    return value * (screenWidth / 400);
   }
 
   double _adaptivePadding(double value) {
-    return value * (screenWidth / 400); // Base width of 400
+    return value * (screenWidth / 400);
   }
 
   @override
@@ -79,7 +79,6 @@ class _WalletPageState extends State<WalletPage>
     super.dispose();
   }
 
-  // Set up responsive values based on screen size and orientation
   void _setResponsiveValues(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     screenWidth = mediaQuery.size.width;
@@ -88,12 +87,10 @@ class _WalletPageState extends State<WalletPage>
     textScaleFactor = mediaQuery.textScaleFactor;
     systemPadding = mediaQuery.padding;
 
-    // Adjust breakpoints based on orientation
     if (orientation == Orientation.portrait) {
       isTablet = screenWidth > 600;
       isLargeScreen = screenWidth > 900;
     } else {
-      // In landscape, use height as the primary factor
       isTablet = screenHeight > 480;
       isLargeScreen = screenHeight > 700;
     }
@@ -112,11 +109,9 @@ class _WalletPageState extends State<WalletPage>
     double revenue = 0.0;
     double profit = 0.0;
 
-    // For chart data
     Map<int, double> revenueByDay = {};
     Map<int, double> profitByDay = {};
 
-    // Get current date for filtering
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -136,13 +131,11 @@ class _WalletPageState extends State<WalletPage>
       if (tx['type'] == 'load') {
         double customerPays = (tx['customerPays'] ?? 0.0).toDouble();
         double deducted = (tx['deducted'] ?? 0.0).toDouble();
-        // Update profit calculation - it's simply customer pays minus deducted amount
         double txProfit = customerPays - deducted;
 
         revenue += customerPays;
         profit += txProfit;
 
-        // Add to chart data
         revenueByDay[daysSinceEpoch] =
             (revenueByDay[daysSinceEpoch] ?? 0) + customerPays;
         profitByDay[daysSinceEpoch] =
@@ -151,15 +144,13 @@ class _WalletPageState extends State<WalletPage>
         double amount = (tx['amount'] ?? 0.0).toDouble();
         double serviceFee = (tx['serviceFee'] ?? 0.0).toDouble();
         revenue += amount;
-        profit += serviceFee; // Add service fee to total profit
+        profit += serviceFee;
 
-        // Add to chart data
         revenueByDay[daysSinceEpoch] = (revenueByDay[daysSinceEpoch] ?? 0) + amount;
         profitByDay[daysSinceEpoch] = (profitByDay[daysSinceEpoch] ?? 0) + serviceFee;
       }
     }
 
-    // Convert map to list of FlSpots for chart
     List<int> sortedDays = revenueByDay.keys.toList()..sort();
     _revenueSpots = [];
     _profitSpots = [];
@@ -171,12 +162,10 @@ class _WalletPageState extends State<WalletPage>
         double dayRevenue = revenueByDay[day] ?? 0;
         double dayProfit = profitByDay[day] ?? 0;
 
-        // Add in reverse order (oldest first)
         _revenueSpots.insert(0, FlSpot(i.toDouble(), dayRevenue));
         _profitSpots.insert(0, FlSpot(i.toDouble(), dayProfit));
       }
     } else {
-      // Add dummy data if no transactions
       for (int i = 0; i < 7; i++) {
         _revenueSpots.add(FlSpot(i.toDouble(), 0));
         _profitSpots.add(FlSpot(i.toDouble(), 0));
@@ -209,12 +198,8 @@ class _WalletPageState extends State<WalletPage>
 
   Widget _buildLoadingView() {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF6B48FF), Color(0xFF8A72FF)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+      decoration: const BoxDecoration(
+        gradient: AppTheme.primaryGradient,
       ),
       child: Center(
         child: Column(
@@ -286,16 +271,12 @@ class _WalletPageState extends State<WalletPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Make analytics tab scrollable
-          // Apply primary: false and ClampingScrollPhysics for better coordination
-          // with NestedScrollView.
           SingleChildScrollView(
             primary: false,
             physics: const ClampingScrollPhysics(),
             padding: EdgeInsets.zero,
             child: _buildAnalyticsTab(),
           ),
-          // Transactions tab: filter chips pinned, list scrolls
           Column(
             children: [
               _buildFilterChips(),
@@ -312,18 +293,13 @@ class _WalletPageState extends State<WalletPage>
   Widget _buildLandscapeLayout() {
     return Row(
       children: [
-        // Left panel with header
         Container(
           width: screenWidth * 0.35,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF6B48FF), Color(0xFF8A72FF)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+          decoration: const BoxDecoration(
+            gradient: AppTheme.primaryGradient,
             borderRadius: BorderRadius.only(
-              topRight: Radius.circular(_adaptiveRadius(30)),
-              bottomRight: Radius.circular(_adaptiveRadius(30)),
+              topRight: Radius.circular(30),
+              bottomRight: Radius.circular(30),
             ),
           ),
           child: SafeArea(
@@ -381,17 +357,14 @@ class _WalletPageState extends State<WalletPage>
                     Icons.phone_android,
                   ),
                   Expanded(child: SizedBox()),
-                  // Navigation buttons for landscape mode
                 ],
               ),
             ),
           ),
         ),
-        // Right panel with content
         Expanded(
           child: Column(
             children: [
-              // Tab bar for landscape mode
               Container(
                 color: Colors.white,
                 child: TabBar(
@@ -406,7 +379,6 @@ class _WalletPageState extends State<WalletPage>
                   ],
                 ),
               ),
-              // Tab content
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -425,15 +397,11 @@ class _WalletPageState extends State<WalletPage>
 
   Widget _buildHeader() {
     return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF6B48FF), Color(0xFF8A72FF)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+      decoration: const BoxDecoration(
+        gradient: AppTheme.primaryGradient,
         borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(_adaptiveRadius(30)),
-          bottomRight: Radius.circular(_adaptiveRadius(30)),
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
         ),
       ),
       child: Padding(
@@ -478,7 +446,6 @@ class _WalletPageState extends State<WalletPage>
               ),
             ),
             SizedBox(height: _adaptiveSpacing(20)),
-            // Use Flex for better responsiveness on different screen sizes
             Flex(
               direction: Axis.horizontal,
               children: [
@@ -732,7 +699,6 @@ class _WalletPageState extends State<WalletPage>
             ],
           ),
           SizedBox(height: _adaptiveSpacing(24)),
-          // Use LayoutBuilder to make chart responsive
           LayoutBuilder(
             builder: (context, constraints) {
               return Container(
@@ -866,7 +832,7 @@ class _WalletPageState extends State<WalletPage>
                     ),
                   ),
                 ),
-                );
+              );
             },
           ),
           SizedBox(height: _adaptiveSpacing(16)),
@@ -976,7 +942,6 @@ class _WalletPageState extends State<WalletPage>
         final isWideLayout = constraints.maxWidth > 600;
 
         if (isWideLayout) {
-          // Grid layout for wider screens
           return GridView.builder(
             shrinkWrap: true,
             physics: NeverScrollableScrollPhysics(),
@@ -992,7 +957,6 @@ class _WalletPageState extends State<WalletPage>
             },
           );
         } else {
-          // List layout for narrower screens
           return Column(
             children:
                 transactions.map((tx) => _buildTransactionItem(tx)).toList(),
@@ -1066,7 +1030,6 @@ class _WalletPageState extends State<WalletPage>
     final transactionsBox = Hive.box('transactions');
     final allTransactions = transactionsBox.values.toList().reversed.toList();
 
-    // Filter transactions based on selected period
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -1131,7 +1094,6 @@ class _WalletPageState extends State<WalletPage>
         final isWideLayout = constraints.maxWidth > 600;
 
         if (isWideLayout) {
-          // Grid layout for wider screens
           return GridView.builder(
             padding: EdgeInsets.all(_adaptivePadding(16)),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -1146,7 +1108,6 @@ class _WalletPageState extends State<WalletPage>
             },
           );
         } else {
-          // List layout for narrower screens
           return ListView.builder(
             padding: EdgeInsets.all(_adaptivePadding(16)),
             itemCount: filteredTransactions.length,
@@ -1168,8 +1129,7 @@ class _WalletPageState extends State<WalletPage>
     bool isIncome = false;
     IconData icon;
     Color iconBgColor;
-    
-    // Format date
+
     String formattedDate = '';
     if (tx['date'] != null) {
       DateTime txDate = DateTime.parse(tx['date']);
@@ -1187,13 +1147,12 @@ class _WalletPageState extends State<WalletPage>
       isIncome = true;
       icon = Icons.phone_android;
       iconBgColor = Colors.blue[50]!;
-      
-      // Return the Load Sale transaction card
+
       return Container(
         margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
         padding: EdgeInsets.all(_adaptivePadding(12)),
         decoration: BoxDecoration(
-          color: Color(0xFFF8E7FF), // Light purple/pink background
+          color: Color(0xFFF8E7FF),
           borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
         ),
         child: Column(
@@ -1221,17 +1180,17 @@ class _WalletPageState extends State<WalletPage>
                       Text(
                         'Load Sale',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold, 
-                          fontSize: _adaptiveFontSize(16), 
-                          color: Colors.grey[800]
+                          fontWeight: FontWeight.bold,
+                          fontSize: _adaptiveFontSize(16),
+                          color: Colors.grey[800],
                         ),
                       ),
                       SizedBox(height: _adaptiveSpacing(4)),
                       Text(
                         formattedDate,
                         style: TextStyle(
-                          color: Colors.grey[600], 
-                          fontSize: _adaptiveFontSize(12)
+                          color: Colors.grey[600],
+                          fontSize: _adaptiveFontSize(12),
                         ),
                       ),
                     ],
@@ -1251,8 +1210,8 @@ class _WalletPageState extends State<WalletPage>
                     SizedBox(height: _adaptiveSpacing(4)),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: _adaptivePadding(8), 
-                        vertical: _adaptivePadding(2)
+                        horizontal: _adaptivePadding(8),
+                        vertical: _adaptivePadding(2),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.green[100],
@@ -1280,16 +1239,16 @@ class _WalletPageState extends State<WalletPage>
                 Text(
                   'Wallet Deducted:',
                   style: TextStyle(
-                    fontSize: _adaptiveFontSize(12), 
-                    color: Colors.grey[700]
+                    fontSize: _adaptiveFontSize(12),
+                    color: Colors.grey[700],
                   ),
                 ),
                 Text(
                   '-PHP ${deducted.toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: _adaptiveFontSize(12), 
-                    fontWeight: FontWeight.bold, 
-                    color: Colors.red[700]
+                    fontSize: _adaptiveFontSize(12),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[700],
                   ),
                 ),
               ],
@@ -1301,15 +1260,15 @@ class _WalletPageState extends State<WalletPage>
                 Text(
                   'Commission:',
                   style: TextStyle(
-                    fontSize: _adaptiveFontSize(12), 
-                    color: Colors.grey[700]
+                    fontSize: _adaptiveFontSize(12),
+                    color: Colors.grey[700],
                   ),
                 ),
                 Text(
                   '-PHP ${(tx['commission'] ?? 0).toStringAsFixed(2)}',
                   style: TextStyle(
-                    fontSize: _adaptiveFontSize(12), 
-                    color: Colors.grey[700]
+                    fontSize: _adaptiveFontSize(12),
+                    color: Colors.grey[700],
                   ),
                 ),
               ],
@@ -1326,12 +1285,12 @@ class _WalletPageState extends State<WalletPage>
       isIncome = false;
       icon = Icons.arrow_upward;
       iconBgColor = Colors.green[50]!;
-      
+
       return Container(
         margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
         padding: EdgeInsets.all(_adaptivePadding(12)),
         decoration: BoxDecoration(
-          color: Color(0xFFE8F5E9), // Light green background
+          color: Color(0xFFE8F5E9),
           borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
         ),
         child: Column(
@@ -1359,17 +1318,17 @@ class _WalletPageState extends State<WalletPage>
                       Text(
                         title,
                         style: TextStyle(
-                          fontWeight: FontWeight.bold, 
-                          fontSize: _adaptiveFontSize(16), 
-                          color: Colors.grey[800]
+                          fontWeight: FontWeight.bold,
+                          fontSize: _adaptiveFontSize(16),
+                          color: Colors.grey[800],
                         ),
                       ),
                       SizedBox(height: _adaptiveSpacing(4)),
                       Text(
                         formattedDate,
                         style: TextStyle(
-                          color: Colors.grey[600], 
-                          fontSize: _adaptiveFontSize(12)
+                          color: Colors.grey[600],
+                          fontSize: _adaptiveFontSize(12),
                         ),
                       ),
                     ],
@@ -1389,8 +1348,8 @@ class _WalletPageState extends State<WalletPage>
                     SizedBox(height: _adaptiveSpacing(4)),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: _adaptivePadding(8), 
-                        vertical: _adaptivePadding(2)
+                        horizontal: _adaptivePadding(8),
+                        vertical: _adaptivePadding(2),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.green[100],
@@ -1416,17 +1375,17 @@ class _WalletPageState extends State<WalletPage>
       title = 'GCash Cash Out';
       amount = tx['amount'] ?? 0.0;
       double serviceFee = tx['serviceFee'] ?? 0.0;
-      subtitle = 'Profit (Fee): PHP ${serviceFee.toStringAsFixed(2)}';  
+      subtitle = 'Profit (Fee): PHP ${serviceFee.toStringAsFixed(2)}';
       amountColor = Colors.green[700]!;
       isIncome = true;
       icon = Icons.arrow_downward;
       iconBgColor = Colors.red[50]!;
-      
+
       return Container(
         margin: EdgeInsets.only(bottom: _adaptiveSpacing(12)),
         padding: EdgeInsets.all(_adaptivePadding(12)),
         decoration: BoxDecoration(
-          color: Color(0xFFFFEBEE), // Light red background
+          color: Color(0xFFFFEBEE),
           borderRadius: BorderRadius.circular(_adaptiveRadius(12)),
         ),
         child: Column(
@@ -1454,17 +1413,17 @@ class _WalletPageState extends State<WalletPage>
                       Text(
                         title,
                         style: TextStyle(
-                          fontWeight: FontWeight.bold, 
-                          fontSize: _adaptiveFontSize(16), 
-                          color: Colors.grey[800]
+                          fontWeight: FontWeight.bold,
+                          fontSize: _adaptiveFontSize(16),
+                          color: Colors.grey[800],
                         ),
                       ),
                       SizedBox(height: _adaptiveSpacing(4)),
                       Text(
                         formattedDate,
                         style: TextStyle(
-                          color: Colors.grey[600], 
-                          fontSize: _adaptiveFontSize(12)
+                          color: Colors.grey[600],
+                          fontSize: _adaptiveFontSize(12),
                         ),
                       ),
                     ],
@@ -1484,8 +1443,8 @@ class _WalletPageState extends State<WalletPage>
                     SizedBox(height: _adaptiveSpacing(4)),
                     Container(
                       padding: EdgeInsets.symmetric(
-                        horizontal: _adaptivePadding(8), 
-                        vertical: _adaptivePadding(2)
+                        horizontal: _adaptivePadding(8),
+                        vertical: _adaptivePadding(2),
                       ),
                       decoration: BoxDecoration(
                         color: Colors.green[100],
@@ -1599,7 +1558,7 @@ class _WalletPageState extends State<WalletPage>
           ),
         ),
       ),
-      );
+    );
   }
 
   void _showTransactionDetails(dynamic transaction) {
@@ -1634,7 +1593,6 @@ class _WalletPageState extends State<WalletPage>
       iconColor = Colors.grey;
     }
 
-    // Format date
     String formattedDate = '';
     String formattedTime = '';
     if (transaction['date'] != null) {
@@ -1650,7 +1608,6 @@ class _WalletPageState extends State<WalletPage>
       }
     }
 
-    // Determine if we should use a full-screen dialog or bottom sheet based on screen size
     if (isLargeScreen) {
       _showTransactionDetailsDialog(
           transaction, title, icon, iconColor, formattedDate, formattedTime);
@@ -2093,7 +2050,7 @@ class _WalletPageState extends State<WalletPage>
 
   List<Widget> _buildTransactionDetailItems(dynamic transaction, {required String type}) {
     List<Widget> items = [];
-    
+
     if (type == 'load') {
       items = [
         _buildDetailItem(
@@ -2141,7 +2098,7 @@ class _WalletPageState extends State<WalletPage>
         ),
       ];
     }
-    
+
     return items;
   }
 }
@@ -2153,7 +2110,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   double get minExtent => _tabBar.preferredSize.height;
-  
+
   @override
   double get maxExtent => _tabBar.preferredSize.height;
 

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../theme/app_theme.dart';
+import '../components/modern_filter_bar.dart';
+import '../components/modern_segmented_filter.dart';
+import '../utils/animations.dart';
 
 class ReportPage extends StatefulWidget {
   @override
@@ -435,59 +439,18 @@ class _ReportPageState extends State<ReportPage> {
                             ),
                           ),
                           SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: _transactionTypes.map((type) {
-                              return GestureDetector(
-                                onTap: () {
-                                  setModalState(() {
-                                    tempTransactionType = type;
-                                  });
-                                },
-                                child: _buildFilterChip(type, type == tempTransactionType),
-                              );
-                            }).toList(),
-                          ),
-                          SizedBox(height: 24),
-                          Text(
-                            'Amount Range',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade800,
+                          SizedBox(
+                            height: 80,
+                            child: ModernTransactionFilterBar(
+                              filterTypes: _transactionTypes,
+                              selectedFilter: tempTransactionType,
+                              onFilterChanged: (type) {
+                                setModalState(() {
+                                  tempTransactionType = type;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
                             ),
-                          ),
-                          SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildAmountField('Min: ₱${tempMinAmount.toStringAsFixed(0)}'),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: _buildAmountField('Max: ₱${tempMaxAmount.toStringAsFixed(0)}'),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          RangeSlider(
-                            values: RangeValues(tempMinAmount, tempMaxAmount),
-                            min: 0,
-                            max: 10000,
-                            divisions: 100,
-                            labels: RangeLabels(
-                              '₱${tempMinAmount.toStringAsFixed(0)}',
-                              '₱${tempMaxAmount.toStringAsFixed(0)}',
-                            ),
-                            onChanged: (RangeValues values) {
-                              setModalState(() {
-                                tempMinAmount = values.start;
-                                tempMaxAmount = values.end;
-                              });
-                            },
-                            activeColor: Colors.green[700],
-                            inactiveColor: Colors.grey[300],
                           ),
                           SizedBox(height: 32),
                           Row(
@@ -716,99 +679,138 @@ class _ReportPageState extends State<ReportPage> {
   }
 
   Widget _buildFilterBar() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: _adaptivePadding(16), vertical: _adaptivePadding(8)),
-      child: Row(
-        children: [
-          if (!_isFilterApplied) ...[
-            Expanded(
-              child: Container(
-                height: _adaptiveHeight(40),
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _periods.length,
-                  itemBuilder: (context, index) {
-                    final period = _periods[index];
-                    final isSelected = period == _selectedPeriod;
-
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedPeriod = period;
-                        });
-                        _loadReportData();
-                      },
-                      child: Container(
-                        margin: EdgeInsets.only(right: _adaptiveSpacing(8)),
-                        padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(16)),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
-                        ),
-                        child: Center(
+    return Column(
+      children: [
+        // Transaction type filter using segmented control
+        if (!_isFilterApplied)
+          ModernSegmentedFilter(
+            options: _transactionTypes,
+            selectedOption: _selectedTransactionType,
+            onChanged: (type) {
+              setState(() {
+                _selectedTransactionType = type;
+                _isFilterApplied = true;
+              });
+              _loadReportData();
+            },
+            height: 100,
+          )
+        else
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            height: 50,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: AppTheme.softShadow,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.filter_list, color: AppTheme.primaryColor, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            period,
+                            _getFilterSummary(),
                             style: TextStyle(
-                              color: isSelected ? Colors.green.shade800 : Colors.white,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              fontSize: _adaptiveFontSize(14),
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ] else ...[
-            Expanded(
-              child: Container(
-                height: _adaptiveHeight(40),
-                padding: EdgeInsets.symmetric(horizontal: _adaptivePadding(12), vertical: _adaptivePadding(8)),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(_adaptiveRadius(20)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.filter_list, color: Colors.green[700], size: _adaptiveIconSize(18)),
-                    SizedBox(width: _adaptiveSpacing(8)),
-                    Expanded(
-                      child: Text(
-                        _getFilterSummary(),
-                        style: TextStyle(
-                          color: Colors.green[700],
-                          fontWeight: FontWeight.bold,
-                          fontSize: _adaptiveFontSize(12),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ],
-          SizedBox(width: _adaptiveSpacing(8)),
-          GestureDetector(
-            onTap: _showFilterOptions,
-            child: Container(
-              height: _adaptiveHeight(40),
-              width: _adaptiveHeight(40),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.filter_alt,
-                color: Colors.green[700],
-                size: _adaptiveIconSize(20),
-              ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _showFilterOptions,
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: AppTheme.elevatedShadow,
+                    ),
+                    child: const Icon(
+                      Icons.tune_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+
+        // Period filter
+        if (!_isFilterApplied)
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _periods.length,
+              itemBuilder: (context, index) {
+                final period = _periods[index];
+                final isSelected = period == _selectedPeriod;
+
+                return AnimationUtils.slideInFromBottom(
+                  duration: Duration(milliseconds: 300 + (index * 50)),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedPeriod = period;
+                      });
+                      _loadReportData();
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(25),
+                        border: Border.all(
+                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                          width: 1,
+                        ),
+                        boxShadow: isSelected ? AppTheme.softShadow : null,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isSelected) ...[
+                            Icon(
+                              Icons.schedule_rounded,
+                              size: 14,
+                              color: AppTheme.primaryColor,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            period,
+                            style: TextStyle(
+                              color: isSelected ? AppTheme.primaryColor : Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
   

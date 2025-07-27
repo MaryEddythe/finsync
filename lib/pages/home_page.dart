@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-
-void main() async {
-  await Hive.initFlutter();
-  await Hive.openBox('transactions');
-  await Hive.openBox('balances');
-  runApp(MaterialApp(
-    title: 'GCash & Load Tracker V2',
-    theme: ThemeData(
-      primarySwatch: Colors.green,
-      visualDensity: VisualDensity.adaptivePlatformDensity,
-      textTheme: GoogleFonts.poppinsTextTheme(),
-      useMaterial3: true,
-    ),
-    home: HomePage(),
-  ));
-}
+import '../widgets/transaction_buttons.dart';
+import '../theme/app_theme.dart';
+import '../components/modern_card.dart';
+import '../components/modern_buttons.dart';
+import '../utils/animations.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -25,11 +13,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
-  final _formKey = GlobalKey<FormState>();
-  String _transactionType = 'gcash_in';
-  final _amountController = TextEditingController();
-  final _customerPaysController = TextEditingController();
-  final _walletDeductedController = TextEditingController();
   final _gcashBalanceController = TextEditingController();
   final _loadBalanceController = TextEditingController();
   final _topupAmountController = TextEditingController();
@@ -49,8 +32,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   late Animation<double> _refreshAnimation;
   final double _mayaCommissionRate = 0.03;
   final double _fixedMarkup = 3.0;
-  
-  bool _showTransactionForm = false;
+
   DateTime? _selectedDate;
 
   @override
@@ -61,7 +43,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       duration: Duration(milliseconds: 500),
     );
     _refreshAnimation = CurvedAnimation(parent: _refreshController, curve: Curves.easeInOut);
-    _customerPaysController.addListener(_autoCalculateWalletDeducted);
     _loadBalances();
     _calculateDailyStats();
   }
@@ -91,11 +72,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
           
           if (item['type'] == 'gcash_out') {
-            income -= amount;
-            expense += amount;
+            income += amount;
+            expense -= amount;
             revenue += fee;
           } else if (item['type'] == 'gcash_in') {
-            income += (amount + fee);
+            income -= amount;
             expense += amount;
             revenue += fee;
           } else if (item['type'] == 'topup') {
@@ -117,8 +98,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     if (amount <= 300) return 10;
     if (amount <= 500) return 15;
     if (amount <= 1000) return 25;
-    if (amount <= 1500) return 35;
-    if (amount <= 2000) return 45;
+    if (amount <= 1500) return 30;
+    if (amount <= 2000) return 40;
     if (amount <= 2500) return 50;
     if (amount <= 3000) return 60;
     if (amount <= 3500) return 70;
@@ -388,166 +369,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     );
   }
 
-  void _saveTransaction() {
-    if (_transactionType != 'load') {
-      if (_formKey.currentState!.validate()) {
-        final amount = double.tryParse(_amountController.text);
-        if (amount != null) {
-          double fee = _calculateGcashFee(amount);
-          final box = Hive.box('transactions');
-          
-          if (_transactionType == 'gcash_in') {
-            if (_gcashBalance >= amount) {
-              box.add({
-                'type': _transactionType,
-                'amount': amount,
-                'serviceFee': fee,
-                'totalAmount': amount + fee,
-                'date': DateTime.now().toIso8601String(),
-              });
-
-              setState(() {
-                _gcashBalance -= amount;
-                _monthlyIncome += (amount + fee);
-                _monthlyExpense += amount;
-                _monthlyRevenue += fee;
-              });
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Insufficient GCash balance for cash-in!'),
-                  backgroundColor: Colors.red,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  margin: EdgeInsets.all(10),
-                ),
-              );
-              return;
-            }
-          } 
-          else if (_transactionType == 'gcash_out') {
-            box.add({
-              'type': _transactionType,
-              'amount': amount,
-              'serviceFee': fee,
-              'totalAmount': amount + fee,
-              'date': DateTime.now().toIso8601String(),
-            });
-
-            setState(() {
-              _gcashBalance += amount;
-              _monthlyIncome -= amount; // Subtract cash out from income
-              _monthlyExpense += amount;
-              _monthlyRevenue += fee;
-            });
-          }
-          
-          _amountController.clear();
-          _saveBalances();
-          _calculateDailyStats();
-          
-          setState(() {
-            _showTransactionForm = false;
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Transaction saved! Fee: ₱${fee.toStringAsFixed(2)}'),
-              backgroundColor: Colors.green[700],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              margin: EdgeInsets.all(10),
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  void _saveLoadTransaction() {
-    final customerPays = double.tryParse(_customerPaysController.text);
-    final walletDeducted = double.tryParse(_walletDeductedController.text);
-    if (customerPays != null && walletDeducted != null) {
-      if (_loadWalletBalance < walletDeducted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Insufficient load wallet balance!'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            margin: EdgeInsets.all(10),
-          ),
-        );
-        return;
-      }
-      
-      final mayaCommission = walletDeducted * _mayaCommissionRate;
-      final profit = customerPays - walletDeducted;
-      
-      final box = Hive.box('transactions');
-      box.add({
-        'type': 'load',
-        'customerPays': customerPays,
-        'deducted': walletDeducted,
-        'commission': mayaCommission,
-        'profit': profit,
-        'date': DateTime.now().toIso8601String(),
-      });
-
-      setState(() {
-        _loadWalletBalance -= walletDeducted;
-        _monthlyIncome += customerPays;
-        _monthlyExpense += walletDeducted;
-        _monthlyRevenue += profit;
-      });
-
-      _customerPaysController.clear();
-      _walletDeductedController.clear();
-      _saveBalances();
-      _calculateDailyStats();
-      
-      setState(() {
-        _showTransactionForm = false;
-      });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Load transaction saved! Profit: ₱${profit.toStringAsFixed(2)}'),
-          backgroundColor: Colors.green[700],
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: EdgeInsets.all(10),
-        ),
-      );
-    }
-  }
-
-  void _autoCalculateWalletDeducted() {
-    if (_transactionType == 'load') {
-      final customerPays = double.tryParse(_customerPaysController.text);
-      if (customerPays != null && customerPays > 0) {
-        final walletDeducted = (customerPays - _fixedMarkup) / (1 + _mayaCommissionRate);
-        if (!_walletDeductedController.text.contains('.') ||
-            double.tryParse(_walletDeductedController.text) == null ||
-            _walletDeductedController.text.isEmpty ||
-            _walletDeductedController.text == '0') {
-          _walletDeductedController.text = walletDeducted.toStringAsFixed(2);
-        }
-      }
-    }
-  }
-
   @override
   void dispose() {
-    _amountController.dispose();
-    _customerPaysController.dispose();
-    _walletDeductedController.dispose();
     _gcashBalanceController.dispose();
     _loadBalanceController.dispose();
     _topupAmountController.dispose();
     _refreshController.dispose();
     _scrollController.dispose();
-    _customerPaysController.removeListener(_autoCalculateWalletDeducted);
     super.dispose();
   }
 
@@ -563,25 +391,38 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     });
   }
 
-  AppBar _buildAppBar() {
+  PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.green[700],
+      backgroundColor: Colors.transparent,
       elevation: 0,
       title: Text(
-        'GCash & Load Tracker V2',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        'FinSync',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: AppTheme.textPrimary,
+        ),
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.refresh, color: Colors.white),
+          icon: Icon(Icons.refresh_rounded, color: AppTheme.textPrimary),
           onPressed: _loadBalances,
           tooltip: 'Refresh data',
+          style: IconButton.styleFrom(
+            backgroundColor: AppTheme.surfaceColor,
+            padding: const EdgeInsets.all(12),
+          ),
         ),
+        const SizedBox(width: 8),
         IconButton(
-          icon: Icon(Icons.edit, color: Colors.white),
+          icon: Icon(Icons.tune_rounded, color: AppTheme.textPrimary),
           onPressed: _editBalances,
-          tooltip: 'Edit balances',
+          tooltip: 'Settings',
+          style: IconButton.styleFrom(
+            backgroundColor: AppTheme.surfaceColor,
+            padding: const EdgeInsets.all(12),
+          ),
         ),
+        const SizedBox(width: 16),
       ],
     );
   }
@@ -610,11 +451,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           final fee = (item['serviceFee'] as num?)?.toDouble() ?? 0.0;
           
           if (item['type'] == 'gcash_out') {
-            income -= amount;
-            expense += amount;
+            income += amount;
+            expense -= amount;
             revenue += fee;
           } else if (item['type'] == 'gcash_in') {
-            income += (amount + fee);
+            income -= amount;
             expense += amount;
             revenue += fee;
           } else if (item['type'] == 'topup') {
@@ -653,22 +494,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final timeFormatter = DateFormat('hh:mm a');
     
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: AppTheme.backgroundPrimary,
       appBar: _buildAppBar(),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          setState(() {
-            _showTransactionForm = !_showTransactionForm;
-            if (_showTransactionForm) {
-              _scrollToTransactionForm();
-            }
-          });
-        },
-        icon: Icon(_showTransactionForm ? Icons.close : Icons.add, color: Colors.white),
-        label: Text(_showTransactionForm ? 'Close' : 'New Transaction', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.green[700],
-        elevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      floatingActionButton: Container(
+        margin: const EdgeInsets.only(bottom: 80),
+        child: FloatingActionButton(
+          onPressed: () {
+            _scrollController.animateTo(
+              400,
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+            );
+          },
+          backgroundColor: AppTheme.primaryColor,
+          elevation: 8,
+          tooltip: 'Quick Transactions',
+          child: BouncingIcon(
+            icon: Icons.bolt_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       body: RefreshIndicator(
@@ -677,98 +523,30 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 80),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Greeting and Date Section
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green[700]!, Colors.green[500]!],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 5))],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hello, Idit!',
-                              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              formatter.format(now),
-                              style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8)),
-                            ),
-                          ],
-                        ),
-                        CircleAvatar(
-                          backgroundColor: Colors.white,
-                          child: Icon(Icons.person, color: Colors.green[700]),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'Current Balances',
-                      style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.9), fontWeight: FontWeight.w500),
-                    ),
-                    SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildBalanceCard(
-                            title: 'GCash',
-                            amount: _gcashBalance,
-                            icon: Icons.account_balance_wallet,
-                            color: Colors.white,
-                            bgColor: Colors.white.withOpacity(0.2),
-                            onTopup: () => _showTopupDialog('gcash'),
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: _buildBalanceCard(
-                            title: 'Load',
-                            amount: _loadWalletBalance,
-                            icon: Icons.phone_android,
-                            color: Colors.white,
-                            bgColor: Colors.white.withOpacity(0.2),
-                            onTopup: () => _showTopupDialog('load'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Last updated: ${timeFormatter.format(now)}',
-                      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+              AnimationUtils.fadeIn(
+                duration: const Duration(milliseconds: 800),
+                child: _buildWelcomeSection(now, formatter, timeFormatter),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-              // Cash Flow Section
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))],
-                ),
+              TransactionButtons(
+                onTransactionSaved: () {
+                  _loadBalances();
+                  _calculateDailyStats();
+                },
+                gcashBalance: _gcashBalance,
+                loadWalletBalance: _loadWalletBalance,
+              ),
+              const SizedBox(height: 20),
+
+              AnimationUtils.slideInFromLeft(
+                duration: const Duration(milliseconds: 1000),
+                child: ModernCard(
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -776,11 +554,42 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            _selectedDate == null
-                                ? 'Today\'s Cash Flow'
-                                : 'Cash Flow for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.successColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    ),
+                                    child: const Icon(
+                                      Icons.trending_up_rounded,
+                                      color: AppTheme.successColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _selectedDate == null
+                                        ? 'Today\'s Cash Flow'
+                                        : 'Cash Flow for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Track your daily income and expenses',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Row(
@@ -831,226 +640,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                         ),
                       ],
                     ),
-                    SizedBox(height: 16),
+                    SizedBox(height: 14),
                     _buildCashFlowSection(),
                   ],
                 ),
-              ),
-              SizedBox(height: 24),
-
-              // Transaction Form Section (Collapsible)
-              AnimatedContainer(
-                key: _transactionFormKey,
-                duration: Duration(milliseconds: 300),
-                height: _showTransactionForm ? null : 0,
-                curve: Curves.easeInOut,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: _showTransactionForm
-                      ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))]
-                      : null,
                 ),
-                child: _showTransactionForm
-                    ? Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'New Transaction',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-                              ),
-                              SizedBox(height: 16),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[50],
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: _transactionType,
-                                    isExpanded: true,
-                                    icon: Icon(Icons.keyboard_arrow_down, color: Colors.green[700]),
-                                    items: [
-                                      DropdownMenuItem(value: 'gcash_in', child: _buildDropdownItem(Icons.arrow_upward, 'GCash Cash In')),
-                                      DropdownMenuItem(value: 'gcash_out', child: _buildDropdownItem(Icons.arrow_downward, 'GCash Cash Out')),
-                                      DropdownMenuItem(value: 'load', child: _buildDropdownItem(Icons.phone_android, 'Load Sold')),
-                                    ],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _transactionType = val!;
-                                      });
-                                    },
-                                    dropdownColor: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              if (_transactionType != 'load') ...[
-                                TextFormField(
-                                  controller: _amountController,
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    labelText: 'Amount (₱)',
-                                    hintText: 'Enter amount',
-                                    prefixIcon: Icon(Icons.attach_money, color: Colors.green[700]),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: Colors.green[700]!, width: 2),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Enter amount';
-                                    if (double.tryParse(value) == null) return 'Enter valid number';
-                                    return null;
-                                  },
-                                  onChanged: (value) {
-                                    if (value.isNotEmpty && (_transactionType == 'gcash_in' || _transactionType == 'gcash_out')) {
-                                      setState(() {});
-                                    }
-                                  },
-                                ),
-                                if (_transactionType == 'gcash_in' || _transactionType == 'gcash_out') ...[
-                                  SizedBox(height: 8),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.amber[50],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.amber[200]!),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.info_outline, size: 16, color: Colors.amber[800]),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Service Fee: ₱${_calculateGcashFee(double.tryParse(_amountController.text) ?? 0.0).toStringAsFixed(2)}',
-                                            style: TextStyle(color: Colors.amber[800], fontSize: 14),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ] else ...[
-                                TextFormField(
-                                  controller: _customerPaysController,
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    labelText: 'Customer Pays (₱)',
-                                    hintText: 'e.g. 53 for GIGA50',
-                                    prefixIcon: Icon(Icons.payments, color: Colors.green[700]),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: Colors.green[700]!, width: 2),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Enter amount';
-                                    if (double.tryParse(value) == null) return 'Enter valid number';
-                                    return null;
-                                  },
-                                  onChanged: (val) {
-                                    _autoCalculateWalletDeducted();
-                                  },
-                                ),
-                                SizedBox(height: 16),
-                                TextFormField(
-                                  controller: _walletDeductedController,
-                                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                                  decoration: InputDecoration(
-                                    labelText: 'Wallet Deducted (₱)',
-                                    hintText: 'Auto-calculated, but editable',
-                                    prefixIcon: Icon(Icons.remove_circle_outline, color: Colors.red[700]),
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(color: Colors.green[700]!, width: 2),
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[50],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Enter amount';
-                                    if (double.tryParse(value) == null) return 'Enter valid number';
-                                    return null;
-                                  },
-                                ),
-                                SizedBox(height: 8),
-                                if (_customerPaysController.text.isNotEmpty && _walletDeductedController.text.isNotEmpty) ...[
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green[50],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.green[200]!),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.info_outline, size: 16, color: Colors.green[800]),
-                                        SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Estimated Profit: ₱${(double.tryParse(_customerPaysController.text) ?? 0.0) - (double.tryParse(_walletDeductedController.text) ?? 0.0)}',
-                                            style: TextStyle(color: Colors.green[800], fontSize: 14),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                              SizedBox(height: 20),
-                              ElevatedButton(
-                                onPressed: _transactionType == 'load' ? _saveLoadTransaction : _saveTransaction,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.save, color: Colors.white),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      _transactionType == 'load' ? 'Log Load Transaction' : 'Log Transaction',
-                                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  minimumSize: Size(double.infinity, 50),
-                                  backgroundColor: Colors.green[700],
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  elevation: 6,
-                                  shadowColor: Colors.green[900]?.withOpacity(0.3),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                    : SizedBox.shrink(),
               ),
-              SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Recent Transactions Section
-              Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))],
-                ),
+              AnimationUtils.slideInFromBottom(
+                duration: const Duration(milliseconds: 1100),
+                child: ModernCard(
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1058,11 +659,42 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            _selectedDate != null
-                                ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
-                                : 'Today\'s Transactions',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                    ),
+                                    child: const Icon(
+                                      Icons.receipt_long_rounded,
+                                      color: AppTheme.primaryColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _selectedDate != null
+                                        ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
+                                        : 'Today\'s Transactions',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Recent activity overview',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -1071,21 +703,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     _buildTransactionsList(),
                   ],
                 ),
+                ),
               ),
             ],
           ),
         ),
       ),
-      );
-  }
-
-  Widget _buildDropdownItem(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: Colors.green[700]),
-        SizedBox(width: 8),
-        Text(text, style: TextStyle(color: Colors.grey[800])),
-      ],
     );
   }
 
@@ -1149,39 +772,48 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     required IconData icon,
     required bool isIncome,
   }) {
+    final color = isIncome ? AppTheme.successColor : AppTheme.errorColor;
+
     return Container(
-      padding: EdgeInsets.all(12),
-      margin: EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: isIncome ? Colors.green[50] : Colors.red[50],
-        borderRadius: BorderRadius.circular(12),
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+        border: Border.all(
+          color: color.withOpacity(0.1),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isIncome ? Colors.green[100] : Colors.red[100],
-              shape: BoxShape.circle,
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
             ),
             child: Icon(
               icon,
-              size: 20,
-              color: isIncome ? Colors.green[700] : Colors.red[700],
+              size: 24,
+              color: color,
             ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(fontSize: 14, color: Colors.grey[700], fontWeight: FontWeight.w500),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          SizedBox(height: 4),
-          Text(
-            '₱${amount.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isIncome ? Colors.green[700] : Colors.red[700],
+          const SizedBox(height: 4),
+          AnimatedCounter(
+            value: amount,
+            prefix: '₱',
+            textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: color,
             ),
           ),
         ],
@@ -1288,13 +920,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     switch (item['type']) {
       case 'gcash_in':
-        typeLabel = 'GCash Cash In';
+        typeLabel = 'Cash In';
         typeIcon = Icons.arrow_upward;
         iconColor = Colors.red[700]!;
         isIncome = false;
         break;
       case 'gcash_out':
-        typeLabel = 'GCash Cash Out';
+        typeLabel = 'Cash Out';
         typeIcon = Icons.arrow_downward;
         iconColor = Colors.green[700]!;
         isIncome = true;
@@ -1319,7 +951,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 10),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: item['type'] == 'gcash_topup' ? Colors.blue[50] : Colors.white,
@@ -1337,17 +969,17 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             child: Icon(
               typeIcon,
               color: iconColor,
-              size: 20,
+              size: 14,
             ),
           ),
-          SizedBox(width: 12),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   typeLabel,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey[800]),
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -1371,7 +1003,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 (isIncome ? '+' : '-') + '₱${displayAmount.abs().toStringAsFixed(2)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 14,
                   color: isIncome ? Colors.green[700] : Colors.red[700],
                 ),
               ),
@@ -1421,13 +1053,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   size: 20,
                 ),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Load Sale',
+                      'Load',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
                     ),
                     SizedBox(height: 4),
@@ -1445,7 +1077,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     '+₱${customerPays.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 14,
                       color: Colors.green[700],
                     ),
                   ),
@@ -1503,4 +1135,111 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
   }
-}
+
+  Widget _buildWelcomeSection(DateTime now, DateFormat formatter, DateFormat timeFormatter) {
+    return ModernCard(
+      gradient: AppTheme.primaryGradient,
+      boxShadow: AppTheme.elevatedShadow,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hello there! 👋',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      formatter.format(now),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Track your finances with ease',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                ),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Current Balances',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: Colors.white.withOpacity(0.9),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: AnimationUtils.slideInFromLeft(
+                  duration: const Duration(milliseconds: 600),
+                  child: BalanceCard(
+                    title: 'GCash',
+                    amount: _gcashBalance,
+                    icon: Icons.account_balance_wallet_rounded,
+                    gradient: AppTheme.accentGradient,
+                    onTap: () => _showTopupDialog('gcash'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: AnimationUtils.slideInFromBottom(
+                  duration: const Duration(milliseconds: 700),
+                  child: BalanceCard(
+                    title: 'Load Wallet',
+                    amount: _loadWalletBalance,
+                    icon: Icons.phone_android_rounded,
+                    gradient: AppTheme.successGradient,
+                    onTap: () => _showTopupDialog('load'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              'Last updated: ${timeFormatter.format(now)}',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 11,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  }
+
