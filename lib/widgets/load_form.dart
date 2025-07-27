@@ -22,7 +22,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   final _walletDeductedController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isLoading = false;
-  final double _mayaCommissionRate = 0.03;
+  final double _mayaCommissionRate = 0.02;
 
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
@@ -93,10 +93,12 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
       final balancesBox = Hive.box('balances');
       final customerPays = double.parse(_customerPaysController.text);
       final deducted = double.parse(_walletDeductedController.text);
+      final commission = deducted * _mayaCommissionRate;
 
       // Check if enough balance
       if (widget.loadWalletBalance < deducted) {
         _showError('Insufficient load wallet balance!');
+        setState(() => _isLoading = false);
         return;
       }
 
@@ -110,6 +112,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
         'customerPays': customerPays,
         'deducted': deducted,
         'profit': customerPays - deducted,
+        'commission': commission,
         'notes': _notesController.text,
         'date': DateTime.now().toIso8601String(),
       });
