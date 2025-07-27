@@ -19,7 +19,6 @@ class _GCashOutFormState extends State<GCashOutForm>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
-  final _notesController = TextEditingController();
 
   bool _isLoading = false;
   late AnimationController _slideController;
@@ -66,7 +65,6 @@ class _GCashOutFormState extends State<GCashOutForm>
     _slideController.dispose();
     _scaleController.dispose();
     _amountController.dispose();
-    _notesController.dispose();
     super.dispose();
   }
 
@@ -119,12 +117,12 @@ class _GCashOutFormState extends State<GCashOutForm>
         'serviceFee': fee,
         'totalAmount': amount + fee,
         'date': DateTime.now().toIso8601String(),
-        'notes': _notesController.text.trim(),
       });
 
       _showSuccessAnimation('GCash Cash Out successful! Fee: ₱${fee.toStringAsFixed(2)}');
       _clearForm();
       widget.onTransactionSaved();
+      Navigator.pop(context);
     } catch (e) {
       _showErrorDialog('Failed to save transaction: $e');
     } finally {
@@ -136,7 +134,6 @@ class _GCashOutFormState extends State<GCashOutForm>
 
   void _clearForm() {
     _amountController.clear();
-    _notesController.clear();
   }
 
   void _showSuccessAnimation(String message) {
@@ -213,8 +210,6 @@ class _GCashOutFormState extends State<GCashOutForm>
                         _buildQuickAmounts(),
                         SizedBox(height: 16),
                         _buildFeePreview(),
-                        SizedBox(height: 16),
-                        _buildNotesField(),
                         SizedBox(height: 24),
                         _buildActionButtons(),
                       ],
@@ -443,41 +438,6 @@ class _GCashOutFormState extends State<GCashOutForm>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNotesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Notes (Optional)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: _notesController,
-          maxLines: 2,
-          decoration: InputDecoration(
-            labelText: 'Add transaction notes...',
-            prefixIcon: Icon(Icons.note_add, color: Colors.grey[600]),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.green[700]!, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
-        ),
-      ],
     );
   }
 
