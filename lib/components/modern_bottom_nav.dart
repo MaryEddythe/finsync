@@ -44,6 +44,7 @@ class ModernBottomNavigation extends StatelessWidget {
               ),
               label: 'Home',
             ),
+            /*
             BottomNavigationBarItem(
               icon: _NavIcon(
                 icon: Icons.calculate_rounded,
@@ -55,6 +56,7 @@ class ModernBottomNavigation extends StatelessWidget {
               ),
               label: 'Calc',
             ),
+            */
             BottomNavigationBarItem(
               icon: _NavIcon(
                 icon: Icons.account_balance_wallet_rounded,

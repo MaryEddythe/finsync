@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'pages/home_page.dart';
-import 'pages/calc_page.dart';
+// import 'pages/calc_page.dart'; // Removed calc page import
 import 'pages/wallet_page.dart' as wallet;
 import 'pages/history_page.dart' as history;
 import 'pages/report_page.dart';
@@ -62,7 +62,7 @@ class _BottomNavPageState extends State<BottomNavPage> {
 
   final List<Widget> _pages = [
     HomePage(),                // Home
-    CalcPage(),                // Calc
+//    CalcPage(),                // Removed Calc page
     wallet.WalletPage(),       // Wallet
     history.HistoryPage(),     // History
     ReportPage(),              // Report
