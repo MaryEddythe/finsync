@@ -1273,10 +1273,10 @@ class _HistoryPageState extends State<HistoryPage>
             child: Text(
               label,
               style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14,
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
             ),
-          ),
           ),
         ],
       ),
@@ -1394,9 +1394,6 @@ class _HistoryPageState extends State<HistoryPage>
     // Assign net amount based on type
     final netAmount = type == 'load' ? loadNet : type == 'gcash' ? gcashNet : allNet;
 
-    // Override with specified values
-    final displayNet = type == 'load' ? 8.40 : type == 'gcash' ? 10.0 : 18.40;
-
     return Container(
       padding: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -1461,7 +1458,7 @@ class _HistoryPageState extends State<HistoryPage>
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'Net: ₱${displayNet.toStringAsFixed(2)}',
+                    'Net: ₱${netAmount.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
