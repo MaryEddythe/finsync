@@ -20,7 +20,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   final _formKey = GlobalKey<FormState>();
   final _customerPaysController = TextEditingController();
   final _walletDeductedController = TextEditingController();
-  final _notesController = TextEditingController();
   bool _isLoading = false;
   final double _mayaCommissionRate = 0.02;
 
@@ -29,10 +28,10 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   late Animation<double> _scaleAnimation;
 
   final List<Map<String, dynamic>> _loadPresets = [
-    {'name': 'GIA50', 'customer': 53.0, 'deducted': 48.50, 'description': '1GB Data, 3 days'},
-    {'name': 'LOAD 100', 'customer': 103.0, 'deducted': 97.0, 'description': 'Regular Load'},
-    {'name': 'LOAD 20', 'customer': 23.0, 'deducted': 19.40, 'description': 'Regular Load'},
-    {'name': 'LOAD 30', 'customer': 33.0, 'deducted': 29.100, 'description': 'Regular Load'},
+    {'name': 'GIA50', 'customer': 53.0, 'deducted': 48.50},
+    {'name': 'LOAD 100', 'customer': 103.0, 'deducted': 97.0},
+    {'name': 'LOAD 20', 'customer': 23.0, 'deducted': 19.40},
+    {'name': 'LOAD 30', 'customer': 33.0, 'deducted': 29.10},
   ];
 
   @override
@@ -63,7 +62,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   void dispose() {
     _customerPaysController.dispose();
     _walletDeductedController.dispose();
-    _notesController.dispose();
     _animationController.dispose();
     super.dispose();
   }
@@ -79,7 +77,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
     setState(() {
       _customerPaysController.clear();
       _walletDeductedController.clear();
-      _notesController.clear();
     });
   }
 
@@ -113,7 +110,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
         'deducted': deducted,
         'profit': customerPays - deducted,
         'commission': commission,
-        'notes': _notesController.text,
         'date': DateTime.now().toIso8601String(),
       });
 
@@ -288,16 +284,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
                         color: canAfford ? Colors.purple[900] : Colors.grey[700],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      preset['description'],
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: canAfford ? Colors.purple[600] : Colors.grey[500],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     if (!canAfford)
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
@@ -449,41 +435,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _buildNotesField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Notes (Optional)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _notesController,
-          maxLines: 2,
-          decoration: InputDecoration(
-            labelText: 'Add transaction notes...',
-            prefixIcon: Icon(Icons.note_add, color: Colors.grey[600]),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.purple[700]!, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey[50],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildActionButtons() {
     return Row(
       children: [
@@ -567,8 +518,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
                         _buildAmountFields(),
                         const SizedBox(height: 16),
                         _buildProfitPreview(),
-                        const SizedBox(height: 16),
-                        _buildNotesField(),
                         const SizedBox(height: 24),
                         _buildActionButtons(),
                       ],

@@ -4,7 +4,126 @@ import 'gcash_out_form.dart';
 import 'load_form.dart';
 import '../theme/app_theme.dart';
 import '../components/modern_card.dart';
-import '../components/modern_buttons.dart';
+
+// Temporary ActionButton widget to resolve undefined method error
+class ActionButton extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final LinearGradient gradient;
+  final String? subtitle;
+  final TextStyle? titleStyle;
+  final TextStyle? subtitleStyle;
+  final VoidCallback? onTap;
+
+  const ActionButton({
+    Key? key,
+    required this.title,
+    required this.icon,
+    required this.gradient,
+    this.subtitle,
+    this.titleStyle,
+    this.subtitleStyle,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: titleStyle ??
+                  Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+            ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                subtitle!,
+                style: subtitleStyle ??
+                    Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 10,
+                        ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Temporary QuickActionChip widget to resolve undefined method error
+class QuickActionChip extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color color;
+  final bool isEnabled;
+  final VoidCallback? onTap;
+
+  const QuickActionChip({
+    Key? key,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.isEnabled,
+    this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isEnabled ? onTap : null,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isEnabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          border: Border.all(
+            color: isEnabled ? color : Colors.grey,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: isEnabled ? color : Colors.grey,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: isEnabled ? color.withOpacity(0.7) : Colors.grey.withOpacity(0.7),
+                fontSize: 10,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class TransactionButtons extends StatelessWidget {
   final VoidCallback onTransactionSaved;
@@ -43,8 +162,8 @@ class TransactionButtons extends StatelessWidget {
               Text(
                 'Quick Transactions',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
           ),
@@ -52,10 +171,10 @@ class TransactionButtons extends StatelessWidget {
           Text(
             'Lightning fast transactions at your fingertips',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppTheme.textSecondary,
-            ),
+                  color: AppTheme.textSecondary,
+                ),
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           // Three main transaction buttons
           Row(
             children: [
@@ -69,9 +188,10 @@ class TransactionButtons extends StatelessWidget {
                   onTap: () => _showGCashInForm(context),
                   balance: null,
                   balanceLabel: 'GCash',
+                  isCashOut: false,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildTransactionButton(
                   context,
@@ -80,27 +200,29 @@ class TransactionButtons extends StatelessWidget {
                   color: Colors.green,
                   gradient: [Colors.green[700]!, Colors.green[500]!],
                   onTap: () => _showGCashOutForm(context),
-                  balance: null, // No balance check for cash out
+                  balance: null,
                   balanceLabel: '',
+                  isCashOut: true,
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: _buildTransactionButton(
                   context,
-                  title: 'Sale',
+                  title: 'Load',
                   icon: Icons.phone_android,
                   color: Colors.purple,
                   gradient: [Colors.purple[700]!, Colors.purple[500]!],
                   onTap: () => _showLoadForm(context),
                   balance: null,
                   balanceLabel: 'Load Wallet',
+                  isCashOut: false,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 14),
-          SizedBox(height: 8),
+          const SizedBox(height: 14),
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -112,17 +234,17 @@ class TransactionButtons extends StatelessWidget {
                   deducted: 47.0, // 53 - 6 profit
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildQuickLoadButton(
                   context,
-                  name: 'Load 99',
-                  price: '₱102',
-                  customer: 102.0,
-                  deducted: 96.0, // 102 - 6 profit
+                  name: 'Load 15',
+                  price: '₱18',
+                  customer: 18.0,
+                  deducted: 14.55, // 102 - 6 profit
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildQuickLoadButton(
                   context,
@@ -148,6 +270,7 @@ class TransactionButtons extends StatelessWidget {
     required VoidCallback onTap,
     required double? balance,
     required String balanceLabel,
+    required bool isCashOut,
   }) {
     return ActionButton(
       title: title,
@@ -158,7 +281,19 @@ class TransactionButtons extends StatelessWidget {
         end: Alignment.bottomRight,
       ),
       subtitle: balance != null ? '₱${balance.toStringAsFixed(0)}' : null,
+      subtitleStyle: balanceLabel.isNotEmpty
+          ? Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+              )
+          : null,
       onTap: onTap,
+      titleStyle: Theme.of(context).textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+            fontSize: isCashOut ? 12 : 14,
+          ),
     );
   }
 
@@ -231,7 +366,6 @@ class TransactionButtons extends StatelessWidget {
   }
 
   void _showLoadFormWithPreset(BuildContext context, double customer, double deducted) {
-    // Show regular load form - user can select the preset from within the form
     _showLoadForm(context);
   }
 }

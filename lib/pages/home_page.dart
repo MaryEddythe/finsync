@@ -4,8 +4,89 @@ import 'package:intl/intl.dart';
 import '../widgets/transaction_buttons.dart';
 import '../theme/app_theme.dart';
 import '../components/modern_card.dart';
-import '../components/modern_buttons.dart';
 import '../utils/animations.dart';
+
+// Define BalanceCard widget for use in _buildWelcomeSection
+class BalanceCard extends StatelessWidget {
+  final String title;
+  final double amount;
+  final IconData icon;
+  final LinearGradient gradient;
+  final VoidCallback onTap;
+
+  const BalanceCard({
+    Key? key,
+    required this.title,
+    required this.amount,
+    required this.icon,
+    required this.gradient,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: Colors.white),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: onTap,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '₱${amount.toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 16, // Smaller font size for Redmi 13
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class HomePage extends StatefulWidget {
   @override
@@ -40,7 +121,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     super.initState();
     _refreshController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 500),
     );
     _refreshAnimation = CurvedAnimation(parent: _refreshController, curve: Curves.easeInOut);
     _loadBalances();
@@ -149,7 +230,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           children: [
             TextFormField(
               controller: _gcashBalanceController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'GCash Balance (₱)',
                 prefixIcon: Icon(Icons.account_balance_wallet, color: Colors.green[700]),
@@ -160,10 +241,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _loadBalanceController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Load (₱)',
                 prefixIcon: Icon(Icons.phone_android, color: Colors.green[700]),
@@ -194,16 +275,16 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Balances updated successfully'),
+                    content: const Text('Balances updated successfully'),
                     backgroundColor: Colors.green[700],
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    margin: EdgeInsets.all(10),
+                    margin: const EdgeInsets.all(10),
                   ),
                 );
               }
             },
-            child: Text('Save', style: TextStyle(color: Colors.white)),
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green[700],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -230,7 +311,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           children: [
             TextFormField(
               controller: _topupAmountController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Amount (₱)',
                 prefixIcon: Icon(Icons.attach_money, color: Colors.green[700]),
@@ -241,9 +322,9 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 ),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Container(
-              padding: EdgeInsets.all(12),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: type == 'gcash' ? Colors.blue[50] : Colors.orange[50],
                 borderRadius: BorderRadius.circular(8),
@@ -258,7 +339,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                     size: 16,
                     color: type == 'gcash' ? Colors.blue[800] : Colors.orange[800],
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       type == 'gcash'
@@ -282,7 +363,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
           ElevatedButton(
             onPressed: () => _handleTopup(type),
-            child: Text('Complete Top-up', style: TextStyle(color: Colors.white)),
+            child: const Text('Complete Top-up', style: TextStyle(color: Colors.white)),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green[700],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -299,11 +380,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please enter a valid amount'),
+          content: const Text('Please enter a valid amount'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          margin: EdgeInsets.all(10),
+          margin: const EdgeInsets.all(10),
         ),
       );
       return;
@@ -330,11 +411,11 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Insufficient GCash balance for top-up!'),
+            content: const Text('Insufficient GCash balance for top-up!'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            margin: EdgeInsets.all(10),
+            margin: const EdgeInsets.all(10),
           ),
         );
         return;
@@ -364,7 +445,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         backgroundColor: Colors.green[700],
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: EdgeInsets.all(10),
+        margin: const EdgeInsets.all(10),
       ),
     );
   }
@@ -384,7 +465,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       if (_transactionFormKey.currentContext != null) {
         Scrollable.ensureVisible(
           _transactionFormKey.currentContext!,
-          duration: Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
       }
@@ -481,7 +562,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CircularProgressIndicator(color: Colors.green[700]),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text('Loading your data...', style: TextStyle(color: Colors.green[700])),
             ],
           ),
@@ -522,7 +603,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         color: Colors.green[700],
         child: SingleChildScrollView(
           controller: _scrollController,
-          physics: AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -532,8 +613,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: _buildWelcomeSection(now, formatter, timeFormatter),
               ),
               const SizedBox(height: 24),
-
               TransactionButtons(
+                key: _transactionFormKey,
                 onTransactionSaved: () {
                   _loadBalances();
                   _calculateDailyStats();
@@ -542,226 +623,170 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 loadWalletBalance: _loadWalletBalance,
               ),
               const SizedBox(height: 20),
-
               AnimationUtils.slideInFromLeft(
                 duration: const Duration(milliseconds: 1000),
                 child: ModernCard(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.successColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.successColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                      ),
+                                      child: const Icon(
+                                        Icons.trending_up_rounded,
+                                        color: AppTheme.successColor,
+                                        size: 20,
+                                      ),
                                     ),
-                                    child: const Icon(
-                                      Icons.trending_up_rounded,
-                                      color: AppTheme.successColor,
-                                      size: 20,
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _selectedDate == null
+                                          ? 'Today\'s Cash Flow'
+                                          : 'Cash Flow for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}',
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _selectedDate == null
-                                        ? 'Today\'s Cash Flow'
-                                        : 'Cash Flow for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Track your daily income and expenses',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  ],
                                 ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Track your daily income and expenses',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.calendar_today, color: Colors.green[700]),
+                                onPressed: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: _selectedDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now(),
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: ColorScheme.light(
+                                            primary: Colors.green[700]!,
+                                            onPrimary: Colors.white,
+                                            surface: Colors.white,
+                                            onSurface: Colors.black,
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+                                  if (picked != null) {
+                                    setState(() {
+                                      _selectedDate = picked;
+                                      _calculateStatsForDate(_selectedDate!);
+                                    });
+                                  }
+                                },
+                                tooltip: 'Select Date',
                               ),
+                              if (_selectedDate != null)
+                                IconButton(
+                                  icon: Icon(Icons.close, color: Colors.red[700]),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedDate = null;
+                                      _calculateDailyStats();
+                                    });
+                                  },
+                                  tooltip: 'Clear Date Filter',
+                                ),
                             ],
                           ),
-                        ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.calendar_today, color: Colors.green[700]),
-                              onPressed: () async {
-                                final picked = await showDatePicker(
-                                  context: context,
-                                  initialDate: _selectedDate ?? DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime.now(),
-                                  builder: (context, child) {
-                                    return Theme(
-                                      data: Theme.of(context).copyWith(
-                                        colorScheme: ColorScheme.light(
-                                          primary: Colors.green[700]!,
-                                          onPrimary: Colors.white,
-                                          surface: Colors.white,
-                                          onSurface: Colors.black,
-                                        ),
-                                      ),
-                                      child: child!,
-                                    );
-                                  },
-                                );
-                                if (picked != null) {
-                                  setState(() {
-                                    _selectedDate = picked;
-                                    _calculateStatsForDate(_selectedDate!);
-                                  });
-                                }
-                              },
-                              tooltip: 'Select Date',
-                            ),
-                            if (_selectedDate != null)
-                              IconButton(
-                                icon: Icon(Icons.close, color: Colors.red[700]),
-                                onPressed: () {
-                                  setState(() {
-                                    _selectedDate = null;
-                                    _calculateDailyStats();
-                                  });
-                                },
-                                tooltip: 'Clear Date Filter',
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 14),
-                    _buildCashFlowSection(),
-                  ],
-                ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      _buildCashFlowSection(),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
-
               AnimationUtils.slideInFromBottom(
                 duration: const Duration(milliseconds: 1100),
                 child: ModernCard(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primaryColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                      ),
+                                      child: const Icon(
+                                        Icons.receipt_long_rounded,
+                                        color: AppTheme.primaryColor,
+                                        size: 20,
+                                      ),
                                     ),
-                                    child: const Icon(
-                                      Icons.receipt_long_rounded,
-                                      color: AppTheme.primaryColor,
-                                      size: 20,
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      _selectedDate != null
+                                          ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
+                                          : 'Today\'s Transactions',
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    _selectedDate != null
-                                        ? 'Transactions for ${DateFormat('MMMM d, yyyy').format(_selectedDate!)}'
-                                        : 'Today\'s Transactions',
-                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Recent activity overview',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: AppTheme.textSecondary,
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Recent activity overview',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    _buildTransactionsList(),
-                  ],
-                ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTransactionsList(),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBalanceCard({
-    required String title,
-    required double amount,
-    required IconData icon,
-    required Color color,
-    required Color bgColor,
-    required VoidCallback onTopup,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20, color: color),
-                  SizedBox(width: 8),
-                  Text(title, style: TextStyle(fontSize: 14, color: color.withOpacity(0.9))),
-                ],
-              ),
-              GestureDetector(
-                onTap: onTopup,
-                child: Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Icon(
-                    Icons.add,
-                    size: 16,
-                    color: color,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Text(
-            '₱${amount.toStringAsFixed(2)}',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
-          ),
-        ],
       ),
     );
   }
@@ -811,7 +836,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           AnimatedCounter(
             value: amount,
             prefix: '₱',
-            textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+            textStyle: TextStyle(
+              fontSize: 10,
               fontWeight: FontWeight.w700,
               color: color,
             ),
@@ -843,17 +869,18 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             : "Transactions for this date will appear here";
 
           return Container(
-            padding: EdgeInsets.symmetric(vertical: 30),
+            padding: const EdgeInsets.symmetric(vertical: 30),
             child: Column(
               children: [
                 Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Text(
                   'No transactions $dateString',
                   style: TextStyle(color: Colors.grey[500], fontSize: 16),
                 ),
-                SizedBox(height: 8),
-                Text(subMessage,
+                const SizedBox(height: 8),
+                Text(
+                  subMessage,
                   style: TextStyle(color: Colors.grey[400], fontSize: 14),
                 ),
               ],
@@ -868,7 +895,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             } else {
               return _buildTransactionItem(item);
             }
-          }).toList()
+          }).toList(),
         );
       },
     );
@@ -951,8 +978,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     }
 
     return Container(
-      margin: EdgeInsets.only(bottom: 10),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: item['type'] == 'gcash_topup' ? Colors.blue[50] : Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -961,7 +988,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
               shape: BoxShape.circle,
@@ -972,7 +999,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               size: 14,
             ),
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -981,13 +1008,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   typeLabel,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey[800]),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   formattedTime,
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
                 if (item['type'] == 'gcash_topup') ...[
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     'From Income',
                     style: TextStyle(color: Colors.blue[700], fontSize: 12, fontWeight: FontWeight.w500),
@@ -999,19 +1026,27 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                (isIncome ? '+' : '-') + '₱${displayAmount.abs().toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: isIncome ? Colors.green[700] : Colors.red[700],
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  (isIncome ? '+' : '-') + '₱${displayAmount.abs().toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: isIncome ? Colors.green[700] : Colors.red[700],
+                  ),
+                  maxLines: 1,
                 ),
               ),
               if (item['serviceFee'] != null && item['serviceFee'] > 0) ...[
-                SizedBox(height: 4),
-                Text(
-                  'Fee: ₱${item['serviceFee'].toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Fee: ₱${item['serviceFee'].toStringAsFixed(2)}',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                    maxLines: 1,
+                  ),
                 ),
               ],
             ],
@@ -1029,8 +1064,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     final profit = item['profit'] is num ? item['profit'].toDouble() : 0.0;
 
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.purple[50],
         borderRadius: BorderRadius.circular(12),
@@ -1042,7 +1077,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           Row(
             children: [
               Container(
-                padding: EdgeInsets.all(10),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: Colors.purple[100],
                   shape: BoxShape.circle,
@@ -1053,7 +1088,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   size: 20,
                 ),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1062,7 +1097,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                       'Load',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800]),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
                       formattedTime,
                       style: TextStyle(color: Colors.grey[600], fontSize: 12),
@@ -1073,27 +1108,35 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '+₱${customerPays.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.green[700],
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '+₱${customerPays.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        color: Colors.green[700],
+                      ),
+                      maxLines: 1,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.green[100],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Text(
-                      'Profit: ₱${profit.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green[700],
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Profit: ₱${profit.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                        maxLines: 1,
                       ),
                     ),
                   ),
@@ -1101,33 +1144,41 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               ),
             ],
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Divider(height: 1, color: Colors.purple[200]),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Wallet Deducted:',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 11, color: Colors.grey[700]),
               ),
-              Text(
-                '-₱${deducted.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700]),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '-₱${deducted.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red[700]),
+                  maxLines: 1,
+                ),
               ),
             ],
           ),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Commission:',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 11, color: Colors.grey[700]),
               ),
-              Text(
-                '-₱${(item['commission'] ?? 0).toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  '-₱${(item['commission'] ?? 0).toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                  maxLines: 1,
+                ),
               ),
             ],
           ),
@@ -1192,7 +1243,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           const SizedBox(height: 24),
           Text(
             'Current Balances',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
               color: Colors.white.withOpacity(0.9),
               fontWeight: FontWeight.w600,
             ),
@@ -1217,7 +1268,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 child: AnimationUtils.slideInFromBottom(
                   duration: const Duration(milliseconds: 700),
                   child: BalanceCard(
-                    title: 'Load Wallet',
+                    title: 'Load',
                     amount: _loadWalletBalance,
                     icon: Icons.phone_android_rounded,
                     gradient: AppTheme.successGradient,
@@ -1241,5 +1292,4 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       ),
     );
   }
-  }
-
+}

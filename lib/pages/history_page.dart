@@ -220,7 +220,7 @@ class _HistoryPageState extends State<HistoryPage>
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                    // child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
                   ),
                   onPressed: _showFilterOptions,
                   tooltip: 'Advanced filters',
@@ -762,7 +762,7 @@ class _HistoryPageState extends State<HistoryPage>
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 16, color: Colors.grey[700]),
+          child: Icon(icon, size: 10, color: Colors.grey[700]),
         ),
         SizedBox(width: 12),
         Expanded(
@@ -911,10 +911,6 @@ class _HistoryPageState extends State<HistoryPage>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (_tabController.index == index) ...[
-                        Icon(Icons.touch_app, size: 16),
-                        SizedBox(width: 6),
-                      ],
                       Text(tabTitles[index].toUpperCase()),
                     ],
                   ),
