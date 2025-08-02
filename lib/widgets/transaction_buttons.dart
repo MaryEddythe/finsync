@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'gcash_in_form.dart';
 import 'gcash_out_form.dart';
 import 'load_form.dart';
@@ -241,7 +242,7 @@ class TransactionButtons extends StatelessWidget {
                   name: 'Load 15',
                   price: '₱18',
                   customer: 18.0,
-                  deducted: 14.55, // 102 - 6 profit
+                  deducted: 14.55, // 18 - 3.45 profit
                 ),
               ),
               const SizedBox(width: 8),
@@ -311,7 +312,7 @@ class TransactionButtons extends StatelessWidget {
       subtitle: price,
       color: AppTheme.primaryColor,
       isEnabled: canAfford,
-      onTap: canAfford ? () => _showLoadFormWithPreset(context, customer, deducted) : null,
+      onTap: canAfford ? () => _showLoadFormWithPreset(context, name, customer, deducted) : null,
     );
   }
 
@@ -365,7 +366,46 @@ class TransactionButtons extends StatelessWidget {
     );
   }
 
-  void _showLoadFormWithPreset(BuildContext context, double customer, double deducted) {
-    _showLoadForm(context);
+  void _showLoadFormWithPreset(BuildContext context, String name, double customer, double deducted) {
+    if (loadWalletBalance < deducted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Insufficient load wallet balance!'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(10),
+        ),
+      );
+      return;
+    }
+
+    const mayaCommissionRate = 0.03;
+    const fixedMarkup = 3.0;
+    final commission = customer * mayaCommissionRate;
+    final profit = customer - deducted - commission;
+
+    final box = Hive.box('transactions');
+    box.add({
+      'type': 'load',
+      'customerPays': customer,
+      'deducted': deducted,
+      'commission': commission,
+      'profit': profit,
+      'date': DateTime.now().toIso8601String(),
+      'wallet': 'load',
+    });
+
+    onTransactionSaved();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$name transaction completed successfully!'),
+        backgroundColor: Colors.green[700],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(10),
+      ),
+    );
   }
 }

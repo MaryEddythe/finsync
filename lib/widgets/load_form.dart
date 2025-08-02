@@ -237,7 +237,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
             color: Colors.grey[800],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

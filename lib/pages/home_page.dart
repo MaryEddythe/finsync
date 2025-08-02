@@ -74,7 +74,7 @@ class BalanceCard extends StatelessWidget {
             child: Text(
               '₱${amount.toStringAsFixed(2)}',
               style: const TextStyle(
-                fontSize: 16, // Smaller font size for Redmi 13
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -837,7 +837,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             value: amount,
             prefix: '₱',
             textStyle: TextStyle(
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: color,
             ),
