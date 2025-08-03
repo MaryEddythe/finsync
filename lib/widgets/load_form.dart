@@ -28,9 +28,9 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   late Animation<double> _scaleAnimation;
 
   final List<Map<String, dynamic>> _loadPresets = [
-    {'name': 'GIA50', 'customer': 53.0, 'deducted': 48.50},
-    {'name': 'LOAD 100', 'customer': 103.0, 'deducted': 97.0},
-    {'name': 'LOAD 20', 'customer': 23.0, 'deducted': 19.40},
+    {'name': 'LOAD 49', 'customer': 52.0, 'deducted': 47.53},
+    {'name': 'LOAD 99', 'customer': 102.0, 'deducted': 96.03},
+    {'name': 'LOAD 75', 'customer': 78.0, 'deducted': 72.75},
     {'name': 'LOAD 30', 'customer': 33.0, 'deducted': 29.10},
   ];
 
@@ -145,7 +145,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.purple[700]!, Colors.purple[500]!],
@@ -172,7 +172,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
             child: Text(
               'Load Transaction',
               style: TextStyle(
-                fontSize: 20,
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -213,7 +213,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
               Text(
                 '₱${widget.loadWalletBalance.toStringAsFixed(2)}',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.purple[900],
                 ),
@@ -232,7 +232,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
         Text(
           'Popular Load Packages',
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Colors.grey[800],
           ),
@@ -243,7 +243,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 2.2,
+            childAspectRatio: 2.8,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -255,7 +255,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
             return GestureDetector(
               onTap: canAfford ? () => _selectLoadPreset(preset) : null,
               child: Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: canAfford ? Colors.purple[50] : Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
@@ -270,7 +270,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
                     Text(
                       preset['name'],
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: canAfford ? Colors.purple[800] : Colors.grey[600],
                       ),
@@ -279,7 +279,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
                     Text(
                       '₱${preset['customer'].toStringAsFixed(0)}',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                         color: canAfford ? Colors.purple[900] : Colors.grey[700],
                       ),
@@ -349,7 +349,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
             }
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         TextFormField(
           controller: _walletDeductedController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -406,7 +406,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
               Text('₱${customerPays.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w500)),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -414,7 +414,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
               Text('-₱${walletDeducted.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.red[700])),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

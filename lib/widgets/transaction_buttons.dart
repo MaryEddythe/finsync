@@ -6,7 +6,6 @@ import 'load_form.dart';
 import '../theme/app_theme.dart';
 import '../components/modern_card.dart';
 
-// Temporary ActionButton widget to resolve undefined method error
 class ActionButton extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -70,7 +69,6 @@ class ActionButton extends StatelessWidget {
   }
 }
 
-// Temporary QuickActionChip widget to resolve undefined method error
 class QuickActionChip extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -232,7 +230,7 @@ class TransactionButtons extends StatelessWidget {
                   name: 'Load 50',
                   price: '₱53',
                   customer: 53.0,
-                  deducted: 47.0, // 53 - 6 profit
+                  deducted: 47.0, 
                 ),
               ),
               const SizedBox(width: 8),
@@ -285,7 +283,7 @@ class TransactionButtons extends StatelessWidget {
       subtitleStyle: balanceLabel.isNotEmpty
           ? Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.white,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w800,
                 fontSize: 10,
               )
           : null,
@@ -385,8 +383,11 @@ class TransactionButtons extends StatelessWidget {
     final commission = customer * mayaCommissionRate;
     final profit = customer - deducted - commission;
 
-    final box = Hive.box('transactions');
-    box.add({
+    final transactionBox = Hive.box('transactions');
+    final balanceBox = Hive.box('balances');
+
+    // Add transaction to Hive
+    transactionBox.add({
       'type': 'load',
       'customerPays': customer,
       'deducted': deducted,
@@ -395,6 +396,16 @@ class TransactionButtons extends StatelessWidget {
       'date': DateTime.now().toIso8601String(),
       'wallet': 'load',
     });
+
+    // Update load wallet balance
+    final currentLoadBalance = balanceBox.get('load', defaultValue: 0.0) as double;
+    balanceBox.put('load', currentLoadBalance - deducted);
+
+    // Update income and revenue in balances
+    final currentIncome = balanceBox.get('income', defaultValue: 0.0) as double;
+    final currentRevenue = balanceBox.get('revenue', defaultValue: 0.0) as double;
+    balanceBox.put('income', currentIncome + customer);
+    balanceBox.put('revenue', currentRevenue + profit);
 
     onTransactionSaved();
 

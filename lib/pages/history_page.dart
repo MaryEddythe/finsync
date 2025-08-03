@@ -28,10 +28,6 @@ class _HistoryPageState extends State<HistoryPage>
   double _filterMaxAmount = 10000.0;
   bool _isFilterApplied = false;
 
-  final List<String> _filterTypes = [
-    'All', 'GCash In', 'GCash Out', 'Load Sale', 'GCash Topup', 'Load Topup'
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -220,7 +216,7 @@ class _HistoryPageState extends State<HistoryPage>
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    // child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                    child: const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
                   ),
                   onPressed: _showFilterOptions,
                   tooltip: 'Advanced filters',
@@ -501,35 +497,10 @@ class _HistoryPageState extends State<HistoryPage>
     final formattedDate = DateFormat('MMMM dd, yyyy').format(date);
     final formattedTime = DateFormat('hh:mm a').format(date);
 
-    IconData transactionIcon;
-    Color iconColor;
-    String transactionTitle;
-
-    if (isLoad) {
-      transactionIcon = Icons.smartphone_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'Load Sale';
-    } else if (transactionType == 'gcash_in') {
-      transactionIcon = Icons.arrow_upward_rounded;
-      iconColor = Colors.red;
-      transactionTitle = 'Cash In';
-    } else if (transactionType == 'gcash_out') {
-      transactionIcon = Icons.arrow_downward_rounded;
-      iconColor = Colors.green;
-      transactionTitle = 'Cash Out';
-    } else if (transactionType == 'topup') {
-      transactionIcon = Icons.add_circle_outline_rounded;
-      iconColor = Colors.orange;
-      transactionTitle = 'Load Wallet Top-up';
-    } else if (transactionType == 'gcash_topup') {
-      transactionIcon = Icons.account_balance_wallet_rounded;
-      iconColor = Colors.blue;
-      transactionTitle = 'GCash Top-up';
-    } else {
-      transactionIcon = Icons.swap_horiz_rounded;
-      iconColor = Colors.purple;
-      transactionTitle = 'Transaction';
-    }
+    // Default values for transaction details
+    IconData transactionIcon = Icons.swap_horiz_rounded;
+    Color iconColor = Colors.purple;
+    String transactionTitle = 'Transaction';
 
     showModalBottomSheet(
       context: context,
@@ -935,7 +906,7 @@ class _HistoryPageState extends State<HistoryPage>
       children: [
         // Main transaction type filter
         PillFilterNavigation(
-          options: _filterTypes,
+          options: ['All', 'GCash In', 'GCash Out', 'Load Sale', 'GCash Topup', 'Load Topup'],
           selectedOption: _filterType,
           onChanged: (type) {
             setState(() {
@@ -1125,7 +1096,7 @@ class _HistoryPageState extends State<HistoryPage>
                           SizedBox(
                             height: 80,
                             child: ModernTransactionFilterBar(
-                              filterTypes: _filterTypes,
+                              filterTypes: ['All', 'GCash In', 'GCash Out', 'Load Sale', 'GCash Topup', 'Load Topup'],
                               selectedFilter: tempType,
                               onFilterChanged: (type) {
                                 setModalState(() {
@@ -1855,15 +1826,6 @@ class _TransactionHistoryTab extends StatelessWidget {
             tx['type'] == 'gcash_topup';
       }
       if (!matchesType) return false;
-
-      // Filter by filterType
-      if (filterType != 'All') {
-        if (filterType == 'GCash In' && tx['type'] != 'gcash_in') return false;
-        if (filterType == 'GCash Out' && tx['type'] != 'gcash_out') return false;
-        if (filterType == 'Load Sale' && tx['type'] != 'load') return false;
-        if (filterType == 'GCash Topup' && tx['type'] != 'gcash_topup') return false;
-        if (filterType == 'Load Topup' && tx['type'] != 'topup') return false;
-      }
 
       // Filter by date range
       final txDate = DateTime.tryParse(tx['date'].toString());
