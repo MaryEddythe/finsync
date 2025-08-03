@@ -86,44 +86,37 @@ class _ModernTransactionFilterBarState extends State<ModernTransactionFilterBar>
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: widget.height ?? 80,
-      padding: widget.padding ?? const EdgeInsets.symmetric(vertical: 8),
+      height: widget.height ?? 64, // Reduced height from 80 to 64
+      padding: widget.padding ?? const EdgeInsets.symmetric(vertical: 4), // Reduced vertical padding
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2), // Adjusted padding
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(4), // Reduced padding
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6), // Smaller radius
                   ),
                   child: Icon(
                     Icons.filter_list_rounded,
                     color: AppTheme.primaryColor,
-                    size: 16,
+                    size: 14, // Smaller icon
                   ),
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Transaction Filters',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
+                const SizedBox(width: 6),
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4), // Reduced spacing
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12), // Adjusted padding
               itemCount: widget.filterTypes.length,
               itemBuilder: (context, index) {
                 final filter = widget.filterTypes[index];
@@ -134,7 +127,7 @@ class _ModernTransactionFilterBarState extends State<ModernTransactionFilterBar>
                 return AnimationUtils.slideInFromBottom(
                   duration: Duration(milliseconds: 300 + (index * 50)),
                   child: Container(
-                    margin: const EdgeInsets.only(right: 12),
+                    margin: const EdgeInsets.only(right: 8), // Reduced margin
                     child: ModernFilterChip(
                       label: filter,
                       icon: icon,
@@ -234,35 +227,35 @@ class _ModernFilterChipState extends State<ModernFilterChip>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced padding
           decoration: BoxDecoration(
             color: widget.isSelected 
                 ? widget.color 
                 : AppTheme.backgroundSecondary,
-            borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium), // Smaller radius
             border: Border.all(
               color: widget.isSelected 
                   ? widget.color
                   : widget.color.withOpacity(0.2),
-              width: widget.isSelected ? 2 : 1,
+              width: widget.isSelected ? 1.5 : 1, // Thinner border
             ),
             boxShadow: [
               if (widget.isSelected) ...[
                 BoxShadow(
                   color: widget.color.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  blurRadius: 10, // Reduced blur
+                  offset: const Offset(0, 3), // Smaller offset
                 ),
                 BoxShadow(
                   color: widget.color.withOpacity(0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  blurRadius: 16, // Reduced blur
+                  offset: const Offset(0, 6), // Smaller offset
                 ),
               ] else ...[
                 BoxShadow(
                   color: Colors.black.withOpacity(0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  blurRadius: 6, // Reduced blur
+                  offset: const Offset(0, 1), // Smaller offset
                 ),
               ],
             ],
@@ -271,25 +264,25 @@ class _ModernFilterChipState extends State<ModernFilterChip>
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(4), // Reduced padding
                 decoration: BoxDecoration(
                   color: widget.isSelected 
                       ? Colors.white.withOpacity(0.2)
                       : widget.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6), // Smaller radius
                 ),
                 child: Icon(
                   widget.icon,
-                  size: 16,
+                  size: 14, // Smaller icon
                   color: widget.isSelected 
                       ? Colors.white
                       : widget.color,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6), // Reduced spacing
               Text(
                 widget.label,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodySmall?.copyWith( // Changed to bodySmall
                   fontWeight: FontWeight.w600,
                   color: widget.isSelected 
                       ? Colors.white
@@ -320,25 +313,24 @@ class ModernFilterBadge extends StatelessWidget {
     if (count == 0) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(left: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      margin: const EdgeInsets.only(left: 4), // Reduced margin
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), // Reduced padding
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8), // Smaller radius
       ),
       child: Text(
         count > 99 ? '99+' : count.toString(),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Colors.white,
           fontWeight: FontWeight.w700,
-          fontSize: 10,
+          fontSize: 9, // Smaller font
         ),
       ),
     );
   }
 }
 
-// Enhanced filter chip with count badge
 class EnhancedFilterChip extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -364,7 +356,7 @@ class EnhancedFilterChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced padding
         decoration: BoxDecoration(
           gradient: isSelected 
               ? LinearGradient(
@@ -374,25 +366,25 @@ class EnhancedFilterChip extends StatelessWidget {
                 )
               : null,
           color: isSelected ? null : AppTheme.backgroundSecondary,
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium), // Smaller radius
           border: Border.all(
             color: isSelected 
                 ? color
                 : color.withOpacity(0.2),
-            width: isSelected ? 2 : 1,
+            width: isSelected ? 1.5 : 1, // Thinner border
           ),
           boxShadow: [
             if (isSelected) ...[
               BoxShadow(
                 color: color.withOpacity(0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                blurRadius: 12, // Reduced blur
+                offset: const Offset(0, 4), // Smaller offset
               ),
             ] else ...[
               BoxShadow(
                 color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                blurRadius: 6, // Reduced blur
+                offset: const Offset(0, 1), // Smaller offset
               ),
             ],
           ],
@@ -401,25 +393,25 @@ class EnhancedFilterChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(4), // Reduced padding
               decoration: BoxDecoration(
                 color: isSelected 
                     ? Colors.white.withOpacity(0.2)
                     : color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6), // Smaller radius
               ),
               child: Icon(
                 icon,
-                size: 16,
+                size: 14, // Smaller icon
                 color: isSelected 
                     ? Colors.white
                     : color,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6), // Reduced spacing
             Text(
               label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith( // Changed to bodySmall
                 fontWeight: FontWeight.w600,
                 color: isSelected 
                     ? Colors.white

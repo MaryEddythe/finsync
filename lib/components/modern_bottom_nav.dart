@@ -14,14 +14,14 @@ class ModernBottomNavigation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(12), // Reduced from 16
       decoration: BoxDecoration(
         color: AppTheme.backgroundSecondary,
-        borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge), // Changed to radiusLarge
         boxShadow: AppTheme.elevatedShadow,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+        borderRadius: BorderRadius.circular(AppTheme.radiusLarge), // Changed to radiusLarge
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: onTap,
@@ -30,8 +30,8 @@ class ModernBottomNavigation extends StatelessWidget {
           elevation: 0,
           selectedItemColor: AppTheme.primaryColor,
           unselectedItemColor: AppTheme.textTertiary,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
+          selectedFontSize: 10, // Reduced from 12
+          unselectedFontSize: 10, // Reduced from 12
           items: const [
             BottomNavigationBarItem(
               icon: _NavIcon(
@@ -110,14 +110,14 @@ class _NavIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6), // Reduced from 8
       decoration: BoxDecoration(
         color: isSelected ? AppTheme.primaryColor.withOpacity(0.1) : Colors.transparent,
         borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
       ),
       child: Icon(
         icon,
-        size: 24,
+        size: 20, // Reduced from 24
         color: isSelected ? AppTheme.primaryColor : AppTheme.textTertiary,
       ),
     );
