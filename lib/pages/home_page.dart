@@ -578,7 +578,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       backgroundColor: AppTheme.backgroundPrimary,
       appBar: _buildAppBar(),
       floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 100),
+        margin: const EdgeInsets.only(bottom: 150),
         child: FloatingActionButton(
           onPressed: () {
             _scrollController.animateTo(

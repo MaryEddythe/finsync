@@ -1341,25 +1341,29 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildSummaryCard(List<dynamic> transactions, String type, String period) {
-    double loadNet = 0.0;
-    double gcashNet = 0.0;
-    double allNet = 0.0;
+    double netServiceFee = 0.0;
+    double gcashExpense = 0.0;
+    double loadExpense = 0.0;
 
     for (var transaction in transactions) {
       if (transaction['type'] == 'load') {
-        final profit = ((transaction['customerPays'] as num?)?.toDouble() ?? 0.0) -
-                       ((transaction['deducted'] as num?)?.toDouble() ?? 0.0);
-        loadNet += profit;
-        allNet += profit;
-      } else if (transaction['type'] == 'gcash_in' || transaction['type'] == 'gcash_out') {
+        final profit = (transaction['profit'] as num?)?.toDouble() ?? 0.0;
+        final deducted = (transaction['deducted'] as num?)?.toDouble() ?? 0.0;
+        netServiceFee += profit;
+        loadExpense += deducted;
+      } else if (transaction['type'] == 'gcash_in') {
         final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-        gcashNet += fee;
-        allNet += fee;
+        final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
+        netServiceFee += fee;
+        gcashExpense += amount;
+      } else if (transaction['type'] == 'gcash_out' || 
+                 transaction['type'] == 'gcash_topup') {
+        final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
+        netServiceFee += fee;
       }
     }
 
-    // Assign net amount based on type
-    final netAmount = type == 'load' ? loadNet : type == 'gcash' ? gcashNet : allNet;
+    final totalExpense = gcashExpense + loadExpense;
 
     return Container(
       padding: EdgeInsets.only(bottom: 16),
@@ -1418,20 +1422,25 @@ class _HistoryPageState extends State<HistoryPage>
                     ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.green[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Net: ₱${netAmount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green[700],
-                    ),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Net: ₱${netServiceFee.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),                  
+                    ],
                 ),
               ],
             ),
@@ -1444,7 +1453,7 @@ class _HistoryPageState extends State<HistoryPage>
                 Expanded(
                   child: _buildSummaryItem(
                     'Income',
-                    type == 'load' ? loadNet : type == 'gcash' ? gcashNet : allNet,
+                    netServiceFee,
                     Icons.arrow_downward_rounded,
                     Colors.green,
                   ),
@@ -1453,7 +1462,7 @@ class _HistoryPageState extends State<HistoryPage>
                 Expanded(
                   child: _buildSummaryItem(
                     'Expense',
-                    0.0, // Simplified as per requirement focus on net
+                    totalExpense,
                     Icons.arrow_upward_rounded,
                     Colors.red,
                   ),
@@ -1603,58 +1612,36 @@ class _TransactionHistoryTab extends StatelessWidget {
       dateLabel = DateFormat('MMMM dd, yyyy').format(date);
     }
 
-    // Calculate daily totals
-    double dailyIncome = 0;
-    double dailyExpense = 0;
-    double dailyServiceFee = 0;
+    // Calculate daily service fees and expenses
+    double dailyServiceFee = 0.0;
+    double dailyGcashExpense = 0.0;
+    double dailyLoadExpense = 0.0;
 
     for (var transaction in dateGroup.value) {
       switch (transaction['type']) {
         case 'load':
-          if (transaction['customerPays'] != null) {
-            dailyIncome += (transaction['customerPays'] as num?)?.toDouble() ?? 0.0;
-          }
-          if (transaction['deducted'] != null) {
-            dailyExpense += (transaction['deducted'] as num?)?.toDouble() ?? 0.0;
-          }
+          final profit = (transaction['profit'] as num?)?.toDouble() ?? 0.0;
+          final deducted = (transaction['deducted'] as num?)?.toDouble() ?? 0.0;
+          dailyServiceFee += profit;
+          dailyLoadExpense += deducted;
           break;
-
-        case 'gcash_out':
-          final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
-          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
-          dailyServiceFee += fee;
-          if (type == 'gcash') {
-            dailyIncome += fee; // Only count service fee as income for GCash tab
-          } else {
-            dailyIncome += fee;
-            dailyExpense += amount;
-          }
-          break;
-
         case 'gcash_in':
+          final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
           final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
+          dailyServiceFee += fee;
+          dailyGcashExpense += amount;
+          break;
+        case 'gcash_out':
+        case 'gcash_topup':
           final fee = (transaction['serviceFee'] as num?)?.toDouble() ?? 0.0;
           dailyServiceFee += fee;
-          if (type == 'gcash') {
-            dailyIncome += fee; // Only count service fee as income for GCash tab
-          } else {
-            dailyIncome += fee;
-            dailyExpense += amount;
-          }
-          break;
-
-        case 'gcash_topup':
-          dailyIncome += (transaction['amount'] as num?)?.toDouble() ?? 0.0;
-          break;
-
-        case 'topup':
-          dailyExpense += (transaction['amount'] as num?)?.toDouble() ?? 0.0;
           break;
       }
     }
 
-    // For GCash tab, show only service fees as net amount
-    final dailyNet = type == 'gcash' ? dailyServiceFee : dailyIncome - dailyExpense;
+    // For all tabs, the net amount is the accumulated service fees
+    final dailyNet = dailyServiceFee;
+    final dailyExpense = dailyGcashExpense + dailyLoadExpense;
 
     return Container(
       padding: EdgeInsets.only(bottom: 16),
@@ -1719,20 +1706,41 @@ class _TransactionHistoryTab extends StatelessWidget {
                     ),
                   ],
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: dailyNet >= 0 ? Colors.green[50] : Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '₱${dailyNet.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: dailyNet >= 0 ? Colors.green[700] : Colors.red[700],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: dailyNet >= 0 ? Colors.green[50] : Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Net: ₱${dailyNet.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: dailyNet >= 0 ? Colors.green[700] : Colors.red[700],
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(height: 4),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.red[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Expense: ₱${dailyExpense.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[700],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
