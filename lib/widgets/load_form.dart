@@ -28,10 +28,10 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
   late Animation<double> _scaleAnimation;
 
   final List<Map<String, dynamic>> _loadPresets = [
-    {'name': 'LOAD 49', 'customer': 52.0, 'deducted': 47.53},
     {'name': 'LOAD 99', 'customer': 102.0, 'deducted': 96.03},
     {'name': 'LOAD 75', 'customer': 78.0, 'deducted': 72.75},
     {'name': 'LOAD 30', 'customer': 33.0, 'deducted': 29.10},
+    {'name': 'LOAD 20', 'customer': 23.0, 'deducted': 19.40},
   ];
 
   @override
@@ -415,13 +415,6 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
             ],
           ),
           const SizedBox(height: 2),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Commission (2%):', style: TextStyle(color: Colors.grey[700])),
-              Text('-₱${commission.toStringAsFixed(2)}', style: TextStyle(fontWeight: FontWeight.w500, color: Colors.orange[700])),
-            ],
-          ),
           Divider(color: Colors.green[300]),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -505,6 +498,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
               _buildHeader(),
               Expanded(
                 child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(20),
                   child: Form(
                     key: _formKey,
@@ -514,7 +508,7 @@ class _LoadFormState extends State<LoadForm> with SingleTickerProviderStateMixin
                         _buildBalanceInfo(),
                         const SizedBox(height: 24),
                         _buildLoadPresets(),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
                         _buildAmountFields(),
                         const SizedBox(height: 16),
                         _buildProfitPreview(),
